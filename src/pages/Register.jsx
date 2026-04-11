@@ -21,8 +21,17 @@ export default function Register() {
     }
     setCargando(true)
     try {
-      await registrar(form)
-      navigate('/dashboard')
+      const data = await registrar(form)
+      if (data.session) {
+        navigate('/dashboard', { replace: true })
+      } else {
+        navigate('/login', {
+          replace: true,
+          state: {
+            mensaje: 'Cuenta creada. Revisa tu correo para confirmar el acceso antes de iniciar sesión.'
+          }
+        })
+      }
     } catch (err) {
       setError(err.message || 'Error al registrarse. Intenta de nuevo.')
     } finally {
