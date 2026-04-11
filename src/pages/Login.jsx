@@ -1,13 +1,15 @@
 import { useState } from 'react'
-import { useNavigate, Link } from 'react-router-dom'
+import { useNavigate, Link, useLocation } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
 
 export default function Login() {
   const { iniciarSesion } = useAuth()
   const navigate = useNavigate()
+  const location = useLocation()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
   const [cargando, setCargando] = useState(false)
+  const mensaje = location.state?.mensaje || ''
 
   const handleChange = (e) =>
     setForm({ ...form, [e.target.name]: e.target.value })
@@ -18,7 +20,7 @@ export default function Login() {
     setCargando(true)
     try {
       await iniciarSesion(form)
-      navigate('/dashboard')
+      navigate('/dashboard', { replace: true })
     } catch {
       setError('Correo o contraseña incorrectos.')
     } finally {
@@ -35,6 +37,11 @@ export default function Login() {
         <p className="text-center text-gray-500 text-sm mb-6">
           Inicia sesión para continuar
         </p>
+        {mensaje && (
+          <p className="text-sm bg-blue-50 text-blue-700 px-3 py-2 rounded-lg mb-4">
+            {mensaje}
+          </p>
+        )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
