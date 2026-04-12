@@ -1,5 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
 import {
+  actualizarPerfilUsuario,
+  cambiarContrasenaUsuario,
   cerrarSesionUsuario,
   escucharCambiosAuth,
   iniciarSesionUsuario,
@@ -47,12 +49,30 @@ export function AuthProvider({ children }) {
     await cerrarSesionUsuario()
   }
 
+  const actualizarPerfil = async ({ nombre, email }) => {
+    const data = await actualizarPerfilUsuario({ nombre, email })
+    if (data?.user) {
+      setUsuario(data.user)
+    }
+    return data
+  }
+
+  const cambiarContrasena = async ({ newPassword }) => {
+    const data = await cambiarContrasenaUsuario({ newPassword })
+    if (data?.user) {
+      setUsuario(data.user)
+    }
+    return data
+  }
+
   const value = useMemo(() => ({
     usuario,
     cargandoAuth,
     registrar,
     iniciarSesion,
-    cerrarSesion
+    cerrarSesion,
+    actualizarPerfil,
+    cambiarContrasena
   }), [usuario, cargandoAuth])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
