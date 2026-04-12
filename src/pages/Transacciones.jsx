@@ -66,9 +66,14 @@ export default function Transacciones() {
 			<div className="max-w-3xl mx-auto bg-white rounded-2xl shadow-md p-8 space-y-6">
 				<div className="flex items-center justify-between">
 					<h1 className="text-2xl font-bold text-indigo-600">Nueva transaccion</h1>
-					<Link to="/dashboard" className="text-indigo-600 hover:underline">
-						Volver al dashboard
-					</Link>
+					<div className="flex items-center gap-4">
+						<Link to="/perfil" className="text-indigo-600 hover:underline">
+							Mi perfil
+						</Link>
+						<Link to="/dashboard" className="text-indigo-600 hover:underline">
+							Volver al dashboard
+						</Link>
+					</div>
 				</div>
 
 				{(errorGlobal || errorLocal) && (

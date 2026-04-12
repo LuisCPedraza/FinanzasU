@@ -25,6 +25,21 @@ export default function Dashboard() {
           Sesión activa como: <strong>{usuario?.email}</strong>
         </p>
 
+        <div className="flex flex-wrap gap-3">
+          <Link
+            to="/perfil"
+            className="bg-white border border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50"
+          >
+            Ir a mi perfil
+          </Link>
+          <Link
+            to="/transacciones"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+          >
+            Nueva transaccion
+          </Link>
+        </div>
+
         {errorGlobal && (
           <p className="rounded-lg bg-red-50 text-red-700 px-4 py-3 text-sm">
             Error de carga: {errorGlobal}
@@ -50,11 +65,8 @@ export default function Dashboard() {
           <p className="text-sm text-gray-500">
             {cargandoDatos ? 'Cargando datos...' : `Transacciones registradas: ${transacciones.length}`}
           </p>
-          <Link
-            to="/transacciones"
-            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
-          >
-            Nueva transaccion
+          <Link to="/perfil" className="text-indigo-600 hover:underline">
+            Editar perfil
           </Link>
         </div>
 
