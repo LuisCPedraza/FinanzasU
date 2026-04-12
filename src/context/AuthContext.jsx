@@ -1,5 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../services/supabaseClient'
+import {
+  cerrarSesionUsuario,
+  escucharCambiosAuth,
+  iniciarSesionUsuario,
+  obtenerSesionActual,
+  registrarUsuario
+} from '../services/authService'
 
 const AuthContext = createContext(null)
 
@@ -10,13 +16,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    obtenerSesionActual().then(({ data: { session } }) => {
       if (!mounted) return
       setUsuario(session?.user ?? null)
       setCargandoAuth(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = escucharCambiosAuth(
       (_evento, session) => {
         setUsuario(session?.user ?? null)
         setCargandoAuth(false)
@@ -30,27 +36,15 @@ export function AuthProvider({ children }) {
   }, [])
 
   const registrar = async ({ nombre, email, password }) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { nombre } }
-    })
-    if (error) throw error
-    return data
+    return registrarUsuario({ nombre, email, password })
   }
 
   const iniciarSesion = async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    if (error) throw error
-    return data
+    return iniciarSesionUsuario({ email, password })
   }
 
   const cerrarSesion = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    await cerrarSesionUsuario()
   }
 
   const value = useMemo(() => ({
