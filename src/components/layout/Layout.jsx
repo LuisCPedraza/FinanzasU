@@ -27,6 +27,11 @@ const sidebarLinks = [
 		to: '/transacciones',
 		label: 'Nueva transaccion',
 		Icon: ReceiptText
+	},
+	{
+		to: '/presupuestos',
+		label: 'Presupuestos',
+		Icon: Sparkles
 	}
 ]
 
