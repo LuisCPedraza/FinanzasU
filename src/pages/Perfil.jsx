@@ -207,12 +207,12 @@ export default function Perfil() {
 
 	return (
 		<div className="space-y-10 animate-[fadeIn_.35s_ease-out] pb-14 bg-[#f8f9fa] min-h-screen text-[#191c1d]">
-			<header className="relative px-4 md:px-8 pt-8 pb-14 md:pb-16 bg-white overflow-hidden rounded-3xl border border-[#c5c5d4]/20">
+			<header className="relative p-6 md:p-8 pb-14 md:pb-16 bg-white overflow-hidden rounded-3xl border border-[#c5c5d4]/20">
 				<div className="absolute top-0 right-0 w-1/3 h-full opacity-10 pointer-events-none">
 					<div className="w-full h-full bg-[#24389c] rounded-full blur-[120px] -mr-32 -mt-32" />
 				</div>
 
-				<div className="max-w-6xl mx-auto flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 relative z-10 text-center md:text-left">
+				<div className="w-full flex flex-col md:flex-row items-center md:items-end gap-6 md:gap-8 relative z-10 text-center md:text-left">
 					<div className="relative group">
 						<div className="w-28 h-28 md:w-32 md:h-32 rounded-3xl overflow-hidden shadow-2xl border-4 border-white md:rotate-3 md:group-hover:rotate-0 transition-transform duration-500 bg-gradient-to-br from-[#24389c] to-[#3f51b5] flex items-center justify-center">
 							<span className="text-white text-5xl md:text-6xl font-black">{userName.charAt(0).toUpperCase()}</span>
@@ -235,7 +235,7 @@ export default function Perfil() {
 				</div>
 			</header>
 
-			<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start px-4 md:px-8">
+			<div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
 				<section className="lg:col-span-8 space-y-8">
 					<div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-black/5">
 						<h3 className="font-bold text-lg md:text-xl flex items-center gap-2 mb-8">
