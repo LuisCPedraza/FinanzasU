@@ -5,6 +5,8 @@ import Register from './pages/Register'
 import Dashboard from './pages/Dashboard'
 import Transacciones from './pages/Transacciones'
 import Perfil from './pages/Perfil'
+import Presupuestos from './pages/Presupuestos'
+import Categorias from './pages/Categorias'
 import Layout from './components/layout/Layout'
 import ProtectedRoute from './components/layout/ProtectedRoute'
 import './auth-theme.css'
@@ -34,6 +36,20 @@ export default function App() {
             <ProtectedRoute>
               <Layout>
                 <Perfil />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/presupuestos" element={
+            <ProtectedRoute>
+              <Layout>
+                <Presupuestos />
+              </Layout>
+            </ProtectedRoute>
+          } />
+          <Route path="/categorias" element={
+            <ProtectedRoute>
+              <Layout>
+                <Categorias />
               </Layout>
             </ProtectedRoute>
           } />

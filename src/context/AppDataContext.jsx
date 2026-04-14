@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 import { useAuthContext } from './AuthContext'
-import { listarCategorias } from '../services/categoriasService'
-import { listarTransacciones, crearTransaccion as crearTransaccionService } from '../services/transaccionesService'
+import { listarCategorias, crearCategoria as crearCategoriaService, actualizarCategoria as actualizarCategoriaService, eliminarCategoria as eliminarCategoriaService } from '../services/categoriasService'
+import { listarTransacciones, crearTransaccion as crearTransaccionService, actualizarTransaccion as actualizarTransaccionService, eliminarTransaccion as eliminarTransaccionService } from '../services/transaccionesService'
 import { listarPresupuestos } from '../services/presupuestosService'
 
 const AppDataContext = createContext(null)
@@ -73,6 +73,44 @@ export function AppDataProvider({ children }) {
     return nuevaTransaccion
   }, [usuario?.id])
 
+  const actualizarTransaccion = useCallback(async (id, data) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+    const actualizada = await actualizarTransaccionService(id, usuario.id, data)
+    setTransacciones((prev) => prev.map((t) => (t.id === id ? actualizada : t)))
+    return actualizada
+  }, [usuario?.id])
+
+  const eliminarTransaccion = useCallback(async (id) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+    await eliminarTransaccionService(id, usuario.id)
+    setTransacciones((prev) => prev.filter((t) => t.id !== id))
+  }, [usuario?.id])
+
+  const crearCategoria = useCallback(async (data) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+    const nueva = await crearCategoriaService({ ...data, user_id: usuario.id, es_predeterminada: false })
+    setCategorias((prev) => [...prev, nueva])
+    return nueva
+  }, [usuario?.id])
+
+  const actualizarCategoria = useCallback(async (id, data) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+    const actualizada = await actualizarCategoriaService(id, usuario.id, data)
+    setCategorias((prev) => prev.map((c) => (c.id === id ? actualizada : c)))
+    return actualizada
+  }, [usuario?.id])
+
+  const eliminarCategoria = useCallback(async (id) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+    await eliminarCategoriaService(id, usuario.id)
+    setCategorias((prev) => prev.filter((c) => c.id !== id))
+  }, [usuario?.id])
+
   const totales = useMemo(() => {
     const totalIngresos = transacciones
       .filter((t) => t.tipo === 'ingreso')
@@ -99,6 +137,11 @@ export function AppDataProvider({ children }) {
     setErrorGlobal,
     cargarDatosIniciales,
     crearTransaccion,
+    actualizarTransaccion,
+    eliminarTransaccion,
+    crearCategoria,
+    actualizarCategoria,
+    eliminarCategoria,
     limpiarEstado
   }), [
     categorias,
@@ -109,6 +152,11 @@ export function AppDataProvider({ children }) {
     totales,
     cargarDatosIniciales,
     crearTransaccion,
+    actualizarTransaccion,
+    eliminarTransaccion,
+    crearCategoria,
+    actualizarCategoria,
+    eliminarCategoria,
     limpiarEstado
   ])
 

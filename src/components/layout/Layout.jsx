@@ -8,6 +8,7 @@ import {
 	Menu,
 	ReceiptText,
 	Sparkles,
+	Tag,
 	Wallet
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
@@ -25,8 +26,18 @@ const sidebarLinks = [
 	},
 	{
 		to: '/transacciones',
-		label: 'Nueva transaccion',
+		label: 'Transacciones',
 		Icon: ReceiptText
+	},
+	{
+		to: '/categorias',
+		label: 'Categorias',
+		Icon: Tag
+	},
+	{
+		to: '/presupuestos',
+		label: 'Presupuestos',
+		Icon: Sparkles
 	}
 ]
 
