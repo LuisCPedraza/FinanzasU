@@ -1,5 +1,13 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
-import { supabase } from '../services/supabaseClient'
+import {
+  actualizarPerfilUsuario,
+  cambiarContrasenaUsuario,
+  cerrarSesionUsuario,
+  escucharCambiosAuth,
+  iniciarSesionUsuario,
+  obtenerSesionActual,
+  registrarUsuario
+} from '../services/authService'
 
 const AuthContext = createContext(null)
 
@@ -10,13 +18,13 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     let mounted = true
 
-    supabase.auth.getSession().then(({ data: { session } }) => {
+    obtenerSesionActual().then(({ data: { session } }) => {
       if (!mounted) return
       setUsuario(session?.user ?? null)
       setCargandoAuth(false)
     })
 
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+    const { data: { subscription } } = escucharCambiosAuth(
       (_evento, session) => {
         setUsuario(session?.user ?? null)
         setCargandoAuth(false)
@@ -30,27 +38,31 @@ export function AuthProvider({ children }) {
   }, [])
 
   const registrar = async ({ nombre, email, password }) => {
-    const { data, error } = await supabase.auth.signUp({
-      email,
-      password,
-      options: { data: { nombre } }
-    })
-    if (error) throw error
-    return data
+    return registrarUsuario({ nombre, email, password })
   }
 
   const iniciarSesion = async ({ email, password }) => {
-    const { data, error } = await supabase.auth.signInWithPassword({
-      email,
-      password
-    })
-    if (error) throw error
-    return data
+    return iniciarSesionUsuario({ email, password })
   }
 
   const cerrarSesion = async () => {
-    const { error } = await supabase.auth.signOut()
-    if (error) throw error
+    await cerrarSesionUsuario()
+  }
+
+  const actualizarPerfil = async ({ nombre, email }) => {
+    const data = await actualizarPerfilUsuario({ nombre, email })
+    if (data?.user) {
+      setUsuario(data.user)
+    }
+    return data
+  }
+
+  const cambiarContrasena = async ({ newPassword }) => {
+    const data = await cambiarContrasenaUsuario({ newPassword })
+    if (data?.user) {
+      setUsuario(data.user)
+    }
+    return data
   }
 
   const value = useMemo(() => ({
@@ -58,7 +70,9 @@ export function AuthProvider({ children }) {
     cargandoAuth,
     registrar,
     iniciarSesion,
-    cerrarSesion
+    cerrarSesion,
+    actualizarPerfil,
+    cambiarContrasena
   }), [usuario, cargandoAuth])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

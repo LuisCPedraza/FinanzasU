@@ -6,6 +6,8 @@ export function useTransacciones() {
     cargandoDatos,
     errorGlobal,
     crearTransaccion,
+    actualizarTransaccion,
+    eliminarTransaccion,
     setErrorGlobal
   } = useAppDataContext()
 
@@ -14,6 +16,8 @@ export function useTransacciones() {
     cargandoDatos,
     errorGlobal,
     crearTransaccion,
+    actualizarTransaccion,
+    eliminarTransaccion,
     limpiarError: () => setErrorGlobal('')
   }
 }

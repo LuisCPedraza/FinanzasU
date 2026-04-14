@@ -4,7 +4,7 @@ Aplicacion web para gestionar finanzas personales de estudiantes, construida con
 
 ## Estado de Historias de Usuario (Checklist)
 
-Actualizado: 2026-04-10
+Actualizado: 2026-04-13 (rama develop)
 
 - [x] HU-01 - Disponibilidad y coherencia de mi informacion
   - [x] AuthContext + hooks de carga inicial
@@ -19,9 +19,29 @@ Actualizado: 2026-04-10
   - [x] Logout con limpieza de estado sensible
   - [x] Navegacion endurecida con replace para evitar regresar a vistas privadas
 
-- [ ] HU-03 - Perfil (pendiente)
-- [ ] HU-04 - Categorias (pendiente)
-- [ ] HU-05 - Presupuestos (pendiente)
+- [x] HU-03 - Mensajes de conflicto claros
+  - [x] Mensajes de error y feedback en login/registro
+
+- [x] HU-04 - Perfil y credenciales seguras
+  - [x] Actualizacion de nombre y correo
+  - [x] Cambio de contrasena con validaciones
+
+- [x] HU-05 - Paginas de acceso claras y accesibles
+  - [x] Flujos de login y registro con estados claros
+
+- [x] HU-06 - Navegacion y perfil faciles de usar
+  - [x] Layout moderno con sidebar
+  - [x] Modulo de perfil integrado al flujo principal
+
+- [x] HU-07 - Gestion de transacciones y categorias
+  - [x] CRUD de transacciones
+  - [x] CRUD de categorias personalizadas
+  - [x] Validaciones de formularios
+
+- [x] HU-08 - Gestion de presupuestos y vista responsive
+  - [x] CRUD de presupuestos por mes/anio
+  - [x] Indicadores de consumo (verde/amarillo/rojo)
+  - [x] Ajustes visuales responsive
 
 ## Tecnologias
 
@@ -29,6 +49,9 @@ Actualizado: 2026-04-10
 - Vite
 - React Router
 - Supabase JS
+- react-hot-toast
+- lucide-react
+- recharts
 - Tailwind CSS
 
 ## Estructura real del proyecto
@@ -67,11 +90,17 @@ FinanzasU/
       categoriasService.js
       transaccionesService.js
       presupuestosService.js
+    utils/
+      constants.js
+      formatMoneda.js
+      validationHelpers.js
   supabase/
     migrations/
       001_initial_schema.sql
     policies.sql
     seed.sql
+  docs/
+    diagrama-er.md
 ```
 
 ## Diagrama de arquitectura del proyecto
@@ -113,12 +142,41 @@ flowchart LR
 - [x] Logout con limpieza de estado sensible
 - [x] Navegacion con replace para evitar regreso a vistas privadas
 
+### HU-03 a HU-08 - Avances en develop
+
+- [x] HU-03: mensajes claros en conflictos de autenticacion
+- [x] HU-04: actualizacion de perfil y contrasena
+- [x] HU-05: experiencia de acceso mas clara/accesible
+- [x] HU-06: layout con sidebar y navegacion consolidada
+- [x] HU-07: CRUD de transacciones/categorias + validaciones
+- [x] HU-08: CRUD de presupuestos + resumen por estado
+
 ## Trazabilidad HU -> Archivos clave
 
 | HU | Archivos |
 |---|---|
 | HU-01 | src/context/AppDataContext.jsx, src/hooks/useInitialData.js, src/hooks/useCategorias.js, src/hooks/useTransacciones.js, src/hooks/usePresupuestos.js, src/services/categoriasService.js, src/services/transaccionesService.js, src/services/presupuestosService.js, src/pages/Dashboard.jsx, src/pages/Transacciones.jsx, supabase/migrations/001_initial_schema.sql, supabase/policies.sql, supabase/seed.sql |
 | HU-02 | src/context/AuthContext.jsx, src/hooks/useAuth.js, src/components/layout/ProtectedRoute.jsx, src/pages/Login.jsx, src/pages/Register.jsx, src/pages/Dashboard.jsx, src/services/supabaseClient.js |
+| HU-03 | src/pages/Login.jsx, src/pages/Register.jsx, src/context/AuthContext.jsx |
+| HU-04 | src/pages/Perfil.jsx, src/hooks/useAuth.js, src/context/AuthContext.jsx, src/utils/constants.js |
+| HU-05 | src/pages/Login.jsx, src/pages/Register.jsx, src/auth-theme.css |
+| HU-06 | src/components/layout/Layout.jsx, src/components/layout/Navbar.jsx, src/pages/Perfil.jsx, src/App.jsx |
+| HU-07 | src/pages/Transacciones.jsx, src/pages/Categorias.jsx, src/hooks/useTransacciones.js, src/hooks/useCategorias.js, src/services/transaccionesService.js, src/services/categoriasService.js, src/utils/validationHelpers.js |
+| HU-08 | src/pages/Presupuestos.jsx, src/hooks/usePresupuestos.js, src/services/presupuestosService.js, src/utils/formatMoneda.js, src/utils/constants.js |
+
+## Diagrama ER de base de datos
+
+Documento recomendado para presentacion tecnica del modelo de datos:
+
+- docs/diagrama-er.md
+
+## Documentacion HU1 y HU2
+
+Carpeta sugerida para identificar rapidamente la documentacion de las HU iniciales:
+
+- docs/HU1-HU2/01-documentacion-funcional.md
+- docs/HU1-HU2/02-documentacion-tecnica.md
+- docs/HU1-HU2/03-trazabilidad-hu1-hu2.md
 
 ## Plantilla de actualizacion de estado (por sprint)
 
@@ -183,7 +241,5 @@ URL local por defecto: http://localhost:5173
 
 ## Estado tecnico actual
 
-- Build: OK
-- Lint: OK
-- HU1: cumplida
-- HU2: cumplida
+- Rama base: develop (sincronizada con upstream/develop)
+- HU1-HU8: integradas en develop
