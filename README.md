@@ -4,44 +4,26 @@ Aplicacion web para gestionar finanzas personales de estudiantes, construida con
 
 ## Estado de Historias de Usuario (Checklist)
 
-Actualizado: 2026-04-13 (rama develop)
+Actualizado: 2026-04-20
 
 - [x] HU-01 - Disponibilidad y coherencia de mi informacion
-  - [x] AuthContext + hooks de carga inicial
-  - [x] Services de categorias, transacciones y presupuestos
-  - [x] Estado global de carga/error
-  - [x] Consultas filtradas por usuario autenticado
-  - [x] Sin consultas directas desde pages (usa hooks/services)
-
 - [x] HU-02 - Sesion estable y control de acceso
-  - [x] Persistencia de sesion al recargar app
-  - [x] Redireccion a login cuando no hay sesion valida
-  - [x] Logout con limpieza de estado sensible
-  - [x] Navegacion endurecida con replace para evitar regresar a vistas privadas
-
 - [x] HU-03 - Mensajes de conflicto claros
-  - [x] Mensajes de error y feedback en login/registro
-
 - [x] HU-04 - Perfil y credenciales seguras
-  - [x] Actualizacion de nombre y correo
-  - [x] Cambio de contrasena con validaciones
-
 - [x] HU-05 - Paginas de acceso claras y accesibles
-  - [x] Flujos de login y registro con estados claros
-
 - [x] HU-06 - Navegacion y perfil faciles de usar
-  - [x] Layout moderno con sidebar
-  - [x] Modulo de perfil integrado al flujo principal
-
 - [x] HU-07 - Gestion de transacciones y categorias
-  - [x] CRUD de transacciones
-  - [x] CRUD de categorias personalizadas
-  - [x] Validaciones de formularios
-
 - [x] HU-08 - Gestion de presupuestos y vista responsive
-  - [x] CRUD de presupuestos por mes/anio
-  - [x] Indicadores de consumo (verde/amarillo/rojo)
-  - [x] Ajustes visuales responsive
+- [x] HU-09 - Dashboard financiero y visualizacion de datos
+- [ ] HU-10 - Pendiente
+- [ ] HU-11 - Pendiente
+- [ ] HU-12 - Pendiente
+- [x] HU-13 - Sistema de notificaciones con campana, RLS y eventos automaticos
+
+Nota de estado:
+- HU-01 a HU-09 estan implementadas e integradas.
+- HU-13 esta implementada en la rama HU-13.
+- HU-10, HU-11 y HU-12 quedan pendientes para siguientes iteraciones.
 
 ## Tecnologias
 
@@ -221,8 +203,9 @@ Si faltan estas variables, la app lanza error controlado desde src/services/supa
 Ejecutar en este orden:
 
 1. supabase/migrations/001_initial_schema.sql
-2. supabase/policies.sql
-3. supabase/seed.sql
+2. supabase/migrations/002_notifications.sql
+3. supabase/policies.sql
+4. supabase/seed.sql
 
 ### 4) Levantar la aplicacion
 
@@ -241,5 +224,7 @@ URL local por defecto: http://localhost:5173
 
 ## Estado tecnico actual
 
-- Rama base: develop (sincronizada con upstream/develop)
-- HU1-HU8: integradas en develop
+- Rama de trabajo actual: HU-13
+- HU-01 a HU-09: integradas
+- HU-13: implementada y subida en HU-13 (lista para PR a develop)
+- HU-10 a HU-12: pendientes
