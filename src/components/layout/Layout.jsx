@@ -104,22 +104,25 @@ export default function Layout({ children }) {
 					</button>
 				</div>
 				<nav className="flex-1 p-3 space-y-1 overflow-y-auto">
-					{NAV_ITEMS.map(({ to, label, icon: Icon }) => (
-						<NavLink
-							key={to}
-							to={to}
-							onClick={() => setSidebarOpen(false)}
-							className={({ isActive }) => [
-								'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group',
-								isActive
-									? 'editorial-gradient text-white shadow-lg shadow-[#24389c]/20'
-									: 'text-[#454652] hover:bg-[#edeeef] hover:text-[#191c1d]'
-							].join(' ')}
-						>
-							<Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
-							{label}
-						</NavLink>
-					))}
+					{NAV_ITEMS.map(({ to, label, icon }) => {
+						const Icon = icon
+						return (
+							<NavLink
+								key={to}
+								to={to}
+								onClick={() => setSidebarOpen(false)}
+								className={({ isActive }) => [
+									'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-200 group',
+									isActive
+										? 'editorial-gradient text-white shadow-lg shadow-[#24389c]/20'
+										: 'text-[#454652] hover:bg-[#edeeef] hover:text-[#191c1d]'
+								].join(' ')}
+							>
+								<Icon className="w-5 h-5 transition-transform group-hover:scale-110" />
+								{label}
+							</NavLink>
+						)
+					})}
 				</nav>
 
 				<div className="p-3 border-t border-[#c5c5d4]/20">
@@ -165,28 +168,31 @@ export default function Layout({ children }) {
 
 			<nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden glass-panel border-t border-[#c5c5d4]/20">
 				<div className="flex items-center justify-around py-2 px-1">
-					{NAV_ITEMS.map(({ to, mobileLabel, icon: Icon }) => (
-						<NavLink
-							key={to}
-							to={to}
-							className={({ isActive }) => [
-								'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all duration-200',
-								isActive ? 'text-[#24389c]' : 'text-[#757684] hover:text-[#454652]'
-							].join(' ')}
-						>
-							{({ isActive }) => (
-								<>
-									<div className={[
-										'p-1 rounded-lg transition-colors',
-										isActive ? 'bg-[#dee0ff]' : ''
-									].join(' ')}>
-										<Icon className="w-5 h-5" />
-									</div>
-									<span className="text-[10px] font-medium">{mobileLabel}</span>
-								</>
-							)}
-						</NavLink>
-					))}
+					{NAV_ITEMS.map(({ to, mobileLabel, icon }) => {
+						const Icon = icon
+						return (
+							<NavLink
+								key={to}
+								to={to}
+								className={({ isActive }) => [
+									'flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-xl min-w-[56px] transition-all duration-200',
+									isActive ? 'text-[#24389c]' : 'text-[#757684] hover:text-[#454652]'
+								].join(' ')}
+							>
+								{({ isActive }) => (
+									<>
+										<div className={[
+											'p-1 rounded-lg transition-colors',
+											isActive ? 'bg-[#dee0ff]' : ''
+										].join(' ')}>
+											<Icon className="w-5 h-5" />
+										</div>
+										<span className="text-[10px] font-medium">{mobileLabel}</span>
+									</>
+								)}
+							</NavLink>
+						)
+					})}
 				</div>
 			</nav>
 		</div>
