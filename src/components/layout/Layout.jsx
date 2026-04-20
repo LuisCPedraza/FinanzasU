@@ -9,10 +9,10 @@ import {
 	LogOut,
 	X,
 	Wallet,
-	Menu,
-	Bell
+	Menu
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from './NotificationsBell'
 
 const NAV_ITEMS = [
 	{ to: '/dashboard', label: 'Dashboard', mobileLabel: 'Inicio', icon: LayoutDashboard },
@@ -103,7 +103,6 @@ export default function Layout({ children }) {
 						<X className="w-5 h-5" />
 					</button>
 				</div>
-
 				<nav className="flex-1 p-3 space-y-1 overflow-y-auto">
 					{NAV_ITEMS.map(({ to, label, icon: Icon }) => (
 						<NavLink
@@ -155,10 +154,7 @@ export default function Layout({ children }) {
 							</div>
 						</div>
 
-						<button type="button" className="p-2 rounded-xl hover:bg-[#edeeef] text-[#454652] transition-colors relative">
-							<Bell className="w-5 h-5" />
-							<span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full bg-[#ba1a1a]" />
-						</button>
+						<NotificationsBell onNavigate={navigate} />
 					</div>
 				</header>
 
