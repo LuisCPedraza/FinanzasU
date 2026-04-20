@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { Bell, CheckCheck, Loader2 } from 'lucide-react'
 import { useNotificaciones } from '../../hooks/useNotificaciones'
 
@@ -23,11 +24,29 @@ export default function NotificationsBell({ onNavigate }) {
     marcarTodasLeidas
   } = useNotificaciones()
   const [open, setOpen] = useState(false)
+  const [panelPosition, setPanelPosition] = useState(null)
   const containerRef = useRef(null)
+  const buttonRef = useRef(null)
+  const panelRef = useRef(null)
+
+  const updatePanelPosition = () => {
+    if (!buttonRef.current) return
+
+    const rect = buttonRef.current.getBoundingClientRect()
+    const margin = 12
+    const viewportWidth = window.innerWidth
+    const width = Math.min(380, viewportWidth - margin * 2)
+    const left = Math.max(margin, rect.right - width)
+    const top = rect.bottom + 8
+
+    setPanelPosition({ top, left, width })
+  }
 
   useEffect(() => {
     const handleOutsideClick = (event) => {
-      if (!containerRef.current?.contains(event.target)) {
+      const clickedButton = containerRef.current?.contains(event.target)
+      const clickedPanel = panelRef.current?.contains(event.target)
+      if (!clickedButton && !clickedPanel) {
         setOpen(false)
       }
     }
@@ -35,6 +54,21 @@ export default function NotificationsBell({ onNavigate }) {
     document.addEventListener('mousedown', handleOutsideClick)
     return () => document.removeEventListener('mousedown', handleOutsideClick)
   }, [])
+
+  useEffect(() => {
+    if (!open) return
+
+    updatePanelPosition()
+
+    const handleViewportChange = () => updatePanelPosition()
+    window.addEventListener('resize', handleViewportChange)
+    window.addEventListener('scroll', handleViewportChange, true)
+
+    return () => {
+      window.removeEventListener('resize', handleViewportChange)
+      window.removeEventListener('scroll', handleViewportChange, true)
+    }
+  }, [open])
 
   const handleOpen = async () => {
     const nextOpen = !open
@@ -59,6 +93,7 @@ export default function NotificationsBell({ onNavigate }) {
   return (
     <div ref={containerRef} className="relative">
       <button
+        ref={buttonRef}
         type="button"
         onClick={handleOpen}
         aria-label="Abrir notificaciones"
@@ -72,8 +107,16 @@ export default function NotificationsBell({ onNavigate }) {
         )}
       </button>
 
-      {open && (
-        <div className="absolute right-0 z-50 mt-2 w-[min(92vw,380px)] overflow-hidden rounded-2xl border border-[#d9dcec]/80 bg-white shadow-2xl">
+      {open && panelPosition && createPortal(
+        <div
+          ref={panelRef}
+          className="fixed z-[9999] overflow-hidden rounded-2xl border border-[#d9dcec]/80 bg-white shadow-2xl"
+          style={{
+            top: panelPosition.top,
+            left: panelPosition.left,
+            width: panelPosition.width
+          }}
+        >
           <div className="flex items-center justify-between border-b border-[#eef1f8] px-4 py-3">
             <div>
               <p className="text-sm font-bold text-[#1f2f86]">Notificaciones</p>
@@ -138,7 +181,8 @@ export default function NotificationsBell({ onNavigate }) {
               </div>
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   )
