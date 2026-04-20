@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { NavLink, useNavigate } from 'react-router-dom'
+import { NavLink, useLocation, useNavigate } from 'react-router-dom'
 import {
 	ChevronsLeftRight,
 	CircleUserRound,
@@ -12,6 +12,7 @@ import {
 	Wallet
 } from 'lucide-react'
 import { useAuth } from '../../hooks/useAuth'
+import NotificationsBell from './NotificationsBell'
 
 const sidebarLinks = [
 	{
@@ -126,7 +127,18 @@ export default function Layout({ children }) {
 	const [compact, setCompact] = useState(false)
 	const [mobileOpen, setMobileOpen] = useState(false)
 	const navigate = useNavigate()
+	const location = useLocation()
 	const { cerrarSesion } = useAuth()
+
+	const titulosRuta = {
+		'/dashboard': 'Inicio',
+		'/perfil': 'Perfil',
+		'/transacciones': 'Transacciones',
+		'/categorias': 'Categorias',
+		'/presupuestos': 'Presupuestos'
+	}
+
+	const tituloActual = titulosRuta[location.pathname] || 'FinanzasU'
 
 	const handleLogout = async () => {
 		await cerrarSesion()
@@ -198,19 +210,27 @@ export default function Layout({ children }) {
 				</div>
 
 				<main className="flex-1 p-4 pb-8 md:p-8">
-					<div className="mb-5 flex items-center justify-between rounded-2xl border border-[#c5c5d4]/30 bg-white/70 px-4 py-3 backdrop-blur md:hidden">
-						<div className="flex items-center gap-2 text-sm font-semibold text-[#24389c]">
-							<Sparkles className="h-4 w-4" />
-							Navegacion
+					<div className="mb-5 flex items-center justify-between rounded-2xl border border-[#c5c5d4]/30 bg-white/75 px-4 py-3 backdrop-blur">
+						<div className="flex items-center gap-3">
+							<button
+								type="button"
+								onClick={() => setMobileOpen(true)}
+								className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#24389c] text-white shadow-md shadow-[#24389c]/25 md:hidden"
+								aria-label="Abrir sidebar"
+							>
+								<Menu className="h-5 w-5" />
+							</button>
+
+							<div>
+								<p className="text-xs uppercase tracking-widest text-[#757684]">Modulo activo</p>
+								<div className="flex items-center gap-2 text-sm font-semibold text-[#24389c]">
+									<Sparkles className="h-4 w-4" />
+									{tituloActual}
+								</div>
+							</div>
 						</div>
-						<button
-							type="button"
-							onClick={() => setMobileOpen(true)}
-							className="inline-flex h-9 w-9 items-center justify-center rounded-xl bg-[#24389c] text-white shadow-md shadow-[#24389c]/25"
-							aria-label="Abrir sidebar"
-						>
-							<Menu className="h-5 w-5" />
-						</button>
+
+						<NotificationsBell onNavigate={navigate} />
 					</div>
 
 					<div className="mx-auto h-full w-full max-w-6xl animate-[fadeIn_.35s_ease-out]">
