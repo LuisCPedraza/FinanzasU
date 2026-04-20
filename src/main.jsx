@@ -4,16 +4,13 @@ import './index.css'
 import App from './App.jsx'
 import { AuthProvider } from './context/AuthContext'
 import { AppDataProvider } from './context/AppDataContext'
-import { NotificationsProvider } from './context/NotificationsContext'
 
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <AuthProvider>
-      <NotificationsProvider>
-        <AppDataProvider>
-          <App />
-        </AppDataProvider>
-      </NotificationsProvider>
+      <AppDataProvider>
+        <App />
+      </AppDataProvider>
     </AuthProvider>
   </StrictMode>,
 )
