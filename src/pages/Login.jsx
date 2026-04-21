@@ -33,7 +33,7 @@ export default function Login() {
     if (!validate()) return
     try {
       setLoading(true)
-      await iniciarSesion({ email, password })
+      await iniciarSesion({ email, password, recordar: remember })
       toast.success('Inicio de sesión exitoso.')
       navigate('/dashboard', { replace: true })
     } catch (err) {

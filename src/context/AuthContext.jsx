@@ -6,10 +6,23 @@ import {
   escucharCambiosAuth,
   iniciarSesionUsuario,
   obtenerSesionActual,
-  registrarUsuario
+  registrarUsuario,
+  solicitarRecuperacionContrasena
 } from '../services/authService'
 
 const AuthContext = createContext(null)
+
+/**
+ * Clave utilizada en localStorage / sessionStorage para determinar
+ * si la sesion debe persistir al cerrar el navegador ("Recordarme").
+ *
+ * - localStorage  → sesion persistente (sobrevive cierre de navegador)
+ * - sessionStorage → sesion temporal  (se pierde al cerrar pestana)
+ *
+ * Si no existe en ninguno de los dos storages al cargar la app,
+ * se cierra la sesion automaticamente para forzar re-autenticacion.
+ */
+const SESSION_KEY = 'finanzasu_session'
 
 export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null)
@@ -20,6 +33,27 @@ export function AuthProvider({ children }) {
 
     obtenerSesionActual().then(({ data: { session } }) => {
       if (!mounted) return
+
+      // --- Logica "Recordarme" ---
+      // Si Supabase tiene una sesion activa pero NO existe el flag
+      // en localStorage ni sessionStorage, significa que el usuario
+      // NO marco "Recordarme" y ya cerro el navegador previamente.
+      // En ese caso cerramos sesion para no mantener acceso no deseado.
+      if (session?.user) {
+        const enLocal = localStorage.getItem(SESSION_KEY)
+        const enSession = sessionStorage.getItem(SESSION_KEY)
+
+        if (!enLocal && !enSession) {
+          cerrarSesionUsuario().then(() => {
+            if (mounted) {
+              setUsuario(null)
+              setCargandoAuth(false)
+            }
+          })
+          return
+        }
+      }
+
       setUsuario(session?.user ?? null)
       setCargandoAuth(false)
     })
@@ -41,11 +75,37 @@ export function AuthProvider({ children }) {
     return registrarUsuario({ nombre, email, password })
   }
 
-  const iniciarSesion = async ({ email, password }) => {
-    return iniciarSesionUsuario({ email, password })
+  /**
+   * Inicia sesion con email/password.
+   *
+   * @param {Object} params
+   * @param {string} params.email
+   * @param {string} params.password
+   * @param {boolean} [params.recordar=false] - Si true, la sesion
+   *   persiste en localStorage; si false, solo en sessionStorage
+   *   (se pierde al cerrar el navegador).
+   */
+  const iniciarSesion = async ({ email, password, recordar = false }) => {
+    const data = await iniciarSesionUsuario({ email, password })
+
+    if (recordar) {
+      localStorage.setItem(SESSION_KEY, 'persistent')
+      sessionStorage.removeItem(SESSION_KEY)
+    } else {
+      sessionStorage.setItem(SESSION_KEY, 'temporary')
+      localStorage.removeItem(SESSION_KEY)
+    }
+
+    return data
   }
 
+  /**
+   * Cierra sesion y limpia ambos storages para que no quede
+   * ningun rastro del flag de "Recordarme".
+   */
   const cerrarSesion = async () => {
+    localStorage.removeItem(SESSION_KEY)
+    sessionStorage.removeItem(SESSION_KEY)
     await cerrarSesionUsuario()
   }
 
@@ -65,6 +125,14 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  /**
+   * Solicita recuperacion de contrasena por correo.
+   * Delega al servicio que devuelve un mensaje neutral.
+   */
+  const solicitarRecuperacion = async ({ email }) => {
+    return solicitarRecuperacionContrasena({ email })
+  }
+
   const value = useMemo(() => ({
     usuario,
     cargandoAuth,
@@ -72,7 +140,8 @@ export function AuthProvider({ children }) {
     iniciarSesion,
     cerrarSesion,
     actualizarPerfil,
-    cambiarContrasena
+    cambiarContrasena,
+    solicitarRecuperacion
   }), [usuario, cargandoAuth])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
