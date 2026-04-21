@@ -129,6 +129,7 @@ export default function Login() {
               <div className="space-y-2">
                 <div className="flex justify-between items-center px-1">
                   <label className="block text-sm font-semibold" htmlFor="password">Contraseña</label>
+                  <Link className="text-sm text-[#24389c] font-semibold hover:underline" to="/forgot-password">¿Olvidaste tu contraseña?</Link>
                 </div>
                 <div className="login-field-wrap relative group">
                   <span className="login-field-icon text-[#757684]">🔒</span>
