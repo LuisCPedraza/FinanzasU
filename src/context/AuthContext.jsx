@@ -28,6 +28,22 @@ export function AuthProvider({ children }) {
   const [usuario, setUsuario] = useState(null)
   const [cargandoAuth, setCargandoAuth] = useState(true)
 
+  /**
+   * Detecta si la URL actual corresponde al flujo de recuperacion
+   * de contrasena. En ese caso NO se debe aplicar la limpieza
+   * de sesion "Recordarme", porque Supabase establece una sesion
+   * temporal de tipo PASSWORD_RECOVERY que necesitamos conservar.
+   */
+  const esFlujodeRecuperacion = () => {
+    const path = window.location.pathname
+    const hash = window.location.hash
+    return (
+      path === '/reset-password' ||
+      hash.includes('type=recovery') ||
+      hash.includes('access_token')
+    )
+  }
+
   useEffect(() => {
     let mounted = true
 
@@ -39,11 +55,16 @@ export function AuthProvider({ children }) {
       // en localStorage ni sessionStorage, significa que el usuario
       // NO marco "Recordarme" y ya cerro el navegador previamente.
       // En ese caso cerramos sesion para no mantener acceso no deseado.
+      //
+      // EXCEPCION: si estamos en el flujo de recuperacion de contrasena,
+      // NO cerramos la sesion porque Supabase la acaba de crear
+      // a partir del enlace de recovery y la necesitamos para
+      // poder llamar a updateUser({ password }).
       if (session?.user) {
         const enLocal = localStorage.getItem(SESSION_KEY)
         const enSession = sessionStorage.getItem(SESSION_KEY)
 
-        if (!enLocal && !enSession) {
+        if (!enLocal && !enSession && !esFlujodeRecuperacion()) {
           cerrarSesionUsuario().then(() => {
             if (mounted) {
               setUsuario(null)
@@ -59,7 +80,16 @@ export function AuthProvider({ children }) {
     })
 
     const { data: { subscription } } = escucharCambiosAuth(
-      (_evento, session) => {
+      (evento, session) => {
+        // Cuando Supabase procesa un enlace de recuperacion, emite
+        // el evento PASSWORD_RECOVERY. Guardamos un flag temporal
+        // en sessionStorage para que la logica de "Recordarme"
+        // no destruya esta sesion antes de que el usuario pueda
+        // cambiar su contrasena.
+        if (evento === 'PASSWORD_RECOVERY' && session?.user) {
+          sessionStorage.setItem(SESSION_KEY, 'recovery')
+        }
+
         setUsuario(session?.user ?? null)
         setCargandoAuth(false)
       }

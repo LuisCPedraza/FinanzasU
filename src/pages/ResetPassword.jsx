@@ -1,15 +1,23 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useRef } from 'react'
 import { useNavigate, Link } from 'react-router-dom'
 import toast from 'react-hot-toast'
 import { Wallet, ArrowLeft } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
 import { PASSWORD_MIN_LENGTH } from '../utils/constants'
+import { supabase } from '../services/supabaseClient'
 
 /**
  * Pagina para establecer una nueva contrasena despues de recibir
  * el enlace de recuperacion por correo.
  *
- * Supabase redirige aqui con tokens en el hash de la URL.
+ * Flujo de Supabase:
+ * 1. El usuario hace clic en el enlace del correo de recuperacion.
+ * 2. Supabase redirige a esta pagina con tokens en el hash de la URL.
+ * 3. El SDK de Supabase detecta los tokens y emite el evento
+ *    PASSWORD_RECOVERY a traves de onAuthStateChange.
+ * 4. Una vez que la sesion de recovery esta establecida, el usuario
+ *    puede llamar a updateUser({ password }) para cambiar su contrasena.
+ *
  * Si el enlace esta vencido o es invalido, se muestra un mensaje
  * de error con opcion de solicitar uno nuevo.
  *
@@ -32,22 +40,30 @@ export default function ResetPassword() {
   const [serverError, setServerError] = useState('')
   const [enlaceInvalido, setEnlaceInvalido] = useState(false)
   const [verificandoEnlace, setVerificandoEnlace] = useState(true)
+  const [sesionRecoveryLista, setSesionRecoveryLista] = useState(false)
+  const timeoutRef = useRef(null)
 
   // ---------------------------------------------------------------
-  // Verificar si la URL contiene los tokens de recuperacion.
-  // Supabase agrega los tokens como fragmento hash o query params.
-  // Si no estan presentes, el enlace es invalido o ya fue usado.
+  // Escuchar el evento PASSWORD_RECOVERY de Supabase.
+  //
+  // Cuando el usuario llega con un enlace de recovery valido,
+  // el SDK de Supabase procesa los tokens del hash automaticamente
+  // y emite el evento PASSWORD_RECOVERY. Eso significa que la sesion
+  // temporal ya esta establecida y podemos llamar a updateUser.
+  //
+  // Si el hash contiene un error explicito (enlace vencido, invalido),
+  // lo detectamos directamente de la URL.
+  //
+  // Si pasan mas de 5 segundos sin recibir el evento, consideramos
+  // que el enlace es invalido o ya fue utilizado.
   // ---------------------------------------------------------------
   useEffect(() => {
+    // 1. Verificar si la URL contiene errores explicitos de Supabase
     const hash = window.location.hash
     const params = new URLSearchParams(hash.replace('#', '?'))
-
-    const accessToken = params.get('access_token')
-    const type = params.get('type')
     const errorCode = params.get('error_code')
     const errorDescription = params.get('error_description')
 
-    // Si Supabase devuelve un error explicito (enlace vencido, etc.)
     if (errorCode || errorDescription) {
       setEnlaceInvalido(true)
       setServerError(
@@ -59,24 +75,48 @@ export default function ResetPassword() {
       return
     }
 
-    // Si no hay token de acceso o no es tipo recovery → enlace invalido
-    if (!accessToken || type !== 'recovery') {
-      // Puede que Supabase ya haya procesado el token via onAuthStateChange,
-      // asi que damos un breve momento para que se establezca la sesion.
-      const timeout = setTimeout(() => {
-        // Si despues de esperar sigue sin haber hash valido,
-        // verificamos si hay sesion activa (Supabase ya lo proceso)
-        const hashActual = window.location.hash
-        if (!hashActual || !hashActual.includes('access_token')) {
-          // No marcamos como invalido si la sesion ya fue establecida
-          // (el AuthContext ya habra capturado el evento SIGNED_IN)
+    // 2. Escuchar el evento PASSWORD_RECOVERY de Supabase
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(
+      (evento, session) => {
+        if (evento === 'PASSWORD_RECOVERY' && session) {
+          // Sesion de recovery establecida exitosamente
+          setSesionRecoveryLista(true)
+          setVerificandoEnlace(false)
+          if (timeoutRef.current) {
+            clearTimeout(timeoutRef.current)
+            timeoutRef.current = null
+          }
         }
-        setVerificandoEnlace(false)
-      }, 1500)
-      return () => clearTimeout(timeout)
-    }
+      }
+    )
 
-    setVerificandoEnlace(false)
+    // 3. Verificar si ya hay una sesion activa (el evento pudo haberse
+    //    emitido antes de que este useEffect se montara)
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session?.user) {
+        // Ya hay sesion → puede ser recovery que ya se proceso
+        setSesionRecoveryLista(true)
+        setVerificandoEnlace(false)
+        if (timeoutRef.current) {
+          clearTimeout(timeoutRef.current)
+          timeoutRef.current = null
+        }
+      }
+    })
+
+    // 4. Timeout: si en 5s no se establece la sesion, enlace invalido
+    timeoutRef.current = setTimeout(() => {
+      setEnlaceInvalido(true)
+      setServerError('El enlace de recuperación es inválido o ha expirado.')
+      setVerificandoEnlace(false)
+    }, 5000)
+
+    return () => {
+      subscription.unsubscribe()
+      if (timeoutRef.current) {
+        clearTimeout(timeoutRef.current)
+      }
+    }
   }, [])
 
   const validate = () => {
@@ -227,7 +267,7 @@ export default function ResetPassword() {
             )}
 
             {/* Estado: formulario de nueva contrasena */}
-            {!verificandoEnlace && !enlaceInvalido && (
+            {!verificandoEnlace && !enlaceInvalido && sesionRecoveryLista && (
               <>
                 <div className="mb-10">
                   <h2 className="font-headline font-extrabold text-4xl tracking-tight mb-3">
