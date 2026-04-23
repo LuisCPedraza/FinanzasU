@@ -569,7 +569,7 @@ export default function Presupuestos() {
         footer={
           <>
             <UiButton variant="ghost" onClick={closeModal}>Cancelar</UiButton>
-            <UiButton onClick={submitFromFooter} loading={saving}>
+            <UiButton onClick={submitFromFooter} loading={saving} disabled={disableSubmit}>
               {editando ? 'Guardar' : 'Confirmar'}
             </UiButton>
           </>
