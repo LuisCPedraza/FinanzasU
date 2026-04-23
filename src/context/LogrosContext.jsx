@@ -59,7 +59,8 @@ export function LogrosProvider({ children }) {
 
   /**
    * Evalúa todos los logros con los datos actuales y persiste cambios.
-   * Se llama desde AppDataContext después de crear/editar/eliminar transacciones.
+    * Se llama desde AppDataContext al crear/editar/eliminar transacciones,
+    * presupuestos y categorías.
    */
   const evaluarYActualizarLogros = useCallback(async ({ transacciones, presupuestos, categorias }) => {
     if (!usuario?.id || catalogoLogros.length === 0) return
@@ -83,7 +84,7 @@ export function LogrosProvider({ children }) {
         upsertProgresoLogro(usuario.id, r.logroId, r.avanceNuevo, r.meta)
       )
 
-      const upsertResults = await Promise.all(upsertPromises)
+      await Promise.all(upsertPromises)
 
       // Enviar notificaciones para logros recién desbloqueados
       const recienDesbloqueados = conCambio.filter((r) => r.recienDesbloqueado)

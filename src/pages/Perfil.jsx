@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
 	User,
@@ -8,12 +8,14 @@ import {
 	School,
 	BellRing,
 	Star,
-	BadgeCheck,
 	Trash2,
 	Eye,
 	EyeOff
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import useLogros from '../hooks/useLogros'
+import Modal from '../components/ui/Modal'
+import Spinner from '../components/ui/Spinner'
 import { EMAIL_REGEX, PASSWORD_MIN_LENGTH } from '../utils/constants'
 
 function ActionButton({
@@ -107,8 +109,59 @@ function Toggle({ enabled, onToggle }) {
 	)
 }
 
+const ETIQUETAS_TIPO_LOGRO = {
+	contador: 'Contador',
+	umbral: 'Umbral',
+	racha: 'Racha',
+	porcentaje: 'Porcentaje',
+	hito: 'Hito'
+}
+
+const ETIQUETAS_CATEGORIA_LOGRO = {
+	gasto: 'Gasto',
+	ahorro: 'Ahorro',
+	presupuesto: 'Presupuesto',
+	disciplina: 'Disciplina',
+	maestria: 'Maestria',
+	especial: 'Especial'
+}
+
+function construirLogroConEstado(logro, progresoItem) {
+	const meta = Number(logro?.meta || 0)
+	const avance = Number(progresoItem?.avance_actual || 0)
+	const desbloqueado = progresoItem?.desbloqueado === true || (meta > 0 && avance >= meta)
+	const porcentajeCalculado = meta > 0 ? (avance / meta) * 100 : 0
+	const porcentajeBase = Number(progresoItem?.porcentaje ?? porcentajeCalculado)
+	const porcentaje = Number.isFinite(porcentajeBase)
+		? Math.max(0, Math.min(100, Math.round(porcentajeBase * 10) / 10))
+		: 0
+
+	let estado = 'bloqueado'
+	if (desbloqueado) estado = 'desbloqueado'
+	else if (avance > 0) estado = 'en-progreso'
+
+	return {
+		...logro,
+		meta,
+		avance,
+		icono: logro?.icono || '🏅',
+		desbloqueado,
+		estado,
+		estadoLabel:
+			estado === 'desbloqueado'
+				? 'Desbloqueado'
+				: estado === 'en-progreso'
+					? 'En progreso'
+					: 'Bloqueado',
+		porcentaje: desbloqueado ? 100 : porcentaje,
+		tipoLabel: ETIQUETAS_TIPO_LOGRO[logro?.tipo] || 'Hito',
+		categoriaLabel: ETIQUETAS_CATEGORIA_LOGRO[logro?.categoria] || 'General'
+	}
+}
+
 export default function Perfil() {
 	const { usuario, actualizarPerfil, cambiarContrasena } = useAuth()
+	const { catalogoLogros, progreso, estadisticas, cargandoLogros, errorLogros, cargarLogros } = useLogros()
 
 	const userName = usuario?.user_metadata?.nombre || 'Nombre Usuario'
 	const userEmail = usuario?.email || 'usuario@universidad.edu'
@@ -125,13 +178,77 @@ export default function Perfil() {
 	const [alertsDiarias, setAlertsDiarias] = useState(true)
 	const [resumenSemanal, setResumenSemanal] = useState(true)
 	const [novedadesSistema, setNovedadesSistema] = useState(false)
+	const [modalLogrosAbierto, setModalLogrosAbierto] = useState(false)
 
 	const [errors, setErrors] = useState({})
+	const primeraCargaLogrosRef = useRef(true)
+	const desbloqueadosPreviosRef = useRef(new Set())
+
+	const logrosConEstado = useMemo(() => {
+		const progresoPorLogro = new Map(progreso.map((item) => [item.logro_id, item]))
+
+		return [...catalogoLogros]
+			.sort((a, b) => Number(a.orden || 0) - Number(b.orden || 0))
+			.map((logro) => construirLogroConEstado(logro, progresoPorLogro.get(logro.id)))
+	}, [catalogoLogros, progreso])
+
+	const logrosDestacados = useMemo(() => {
+		const prioridadEstado = {
+			desbloqueado: 0,
+			'en-progreso': 1,
+			bloqueado: 2
+		}
+
+		return [...logrosConEstado]
+			.sort((a, b) => {
+				const prioridadA = prioridadEstado[a.estado] ?? 3
+				const prioridadB = prioridadEstado[b.estado] ?? 3
+				if (prioridadA !== prioridadB) return prioridadA - prioridadB
+				return Number(a.orden || 0) - Number(b.orden || 0)
+			})
+			.slice(0, 4)
+	}, [logrosConEstado])
+
+	useEffect(() => {
+		primeraCargaLogrosRef.current = true
+		desbloqueadosPreviosRef.current = new Set()
+	}, [usuario?.id])
 
 	useEffect(() => {
 		setNombre(userName)
 		setEmail(userEmail)
 	}, [userName, userEmail])
+
+	useEffect(() => {
+		if (cargandoLogros) return
+
+		const desbloqueadosActuales = new Set(
+			logrosConEstado
+				.filter((logro) => logro.desbloqueado)
+				.map((logro) => logro.id)
+		)
+
+		if (primeraCargaLogrosRef.current) {
+			desbloqueadosPreviosRef.current = desbloqueadosActuales
+			primeraCargaLogrosRef.current = false
+			return
+		}
+
+		const nuevosLogrosIds = [...desbloqueadosActuales].filter(
+			(id) => !desbloqueadosPreviosRef.current.has(id)
+		)
+
+		if (nuevosLogrosIds.length === 1) {
+			const logroNuevo = logrosConEstado.find((logro) => logro.id === nuevosLogrosIds[0])
+			if (logroNuevo) {
+				toast.success(`Logro desbloqueado: ${logroNuevo.icono} ${logroNuevo.nombre}`)
+			}
+		} else if (nuevosLogrosIds.length > 1) {
+			toast.success(`Logros desbloqueados: ${nuevosLogrosIds.length}`)
+		}
+
+		desbloqueadosPreviosRef.current = desbloqueadosActuales
+	}, [cargandoLogros, logrosConEstado])
 
 	const handleSaveProfile = async (e) => {
 		e.preventDefault()
@@ -351,26 +468,79 @@ export default function Perfil() {
 
 				<aside className="lg:col-span-4 space-y-8">
 					<div className="bg-[#24389c] text-white p-6 md:p-8 rounded-[2rem] shadow-2xl shadow-[#24389c]/20">
-						<h3 className="font-bold text-lg md:text-xl mb-6">Insignias de logro</h3>
-						<div className="grid grid-cols-2 gap-4">
-							<div className="bg-white/10 p-4 rounded-2xl flex flex-col items-center text-center gap-2 border border-white/20">
-								<Star className="w-7 h-7 text-[#83fba5]" />
-								<span className="text-[10px] font-bold uppercase leading-tight">Ahorro del mes</span>
-							</div>
-							<div className="bg-white/10 p-4 rounded-2xl flex flex-col items-center text-center gap-2 border border-white/20">
-								<BadgeCheck className="w-7 h-7 text-[#dee0ff]" />
-								<span className="text-[10px] font-bold uppercase leading-tight">Meta cumplida</span>
-							</div>
-							<div className="bg-white/10 p-4 rounded-2xl flex flex-col items-center text-center gap-2 border border-white/20">
-								<Shield className="w-7 h-7 text-[#ffdbcf]" />
-								<span className="text-[10px] font-bold uppercase leading-tight">Cuenta segura</span>
-							</div>
-							<div className="bg-white/10 p-4 rounded-2xl flex flex-col items-center text-center gap-2 border border-white/20 opacity-40 grayscale">
-								<BellRing className="w-7 h-7" />
-								<span className="text-[10px] font-bold uppercase leading-tight">Nivel experto</span>
-							</div>
+						<div className="flex items-start justify-between gap-3 mb-6">
+							<h3 className="font-bold text-lg md:text-xl">Insignias de logro</h3>
+							{!cargandoLogros && !errorLogros && (
+								<span className="text-[10px] font-semibold bg-white/20 px-2 py-1 rounded-full whitespace-nowrap">
+									{estadisticas.desbloqueados}/{estadisticas.totalLogros} desbloqueados
+								</span>
+							)}
 						</div>
-						<button className="w-full mt-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-bold transition-colors">
+
+						{cargandoLogros ? (
+							<div className="rounded-2xl bg-white/10 border border-white/20 p-6 text-center space-y-3">
+								<Spinner size="md" className="text-white" />
+								<p className="text-sm text-white/90">Cargando tus insignias...</p>
+							</div>
+						) : errorLogros ? (
+							<div className="rounded-2xl bg-[#ffdad6]/95 border border-[#ba1a1a]/30 p-4 text-[#410001] space-y-3">
+								<p className="text-sm font-semibold">No se pudieron cargar los logros.</p>
+								<p className="text-xs opacity-90">{errorLogros}</p>
+								<button
+									type="button"
+									onClick={cargarLogros}
+									className="w-full py-2 rounded-lg text-xs font-bold bg-[#ba1a1a] text-white hover:opacity-90 transition-opacity"
+								>
+									Reintentar carga
+								</button>
+							</div>
+						) : logrosConEstado.length === 0 ? (
+							<div className="rounded-2xl bg-white/10 border border-white/20 p-5 text-center">
+								<p className="text-sm text-white/90">Aun no hay logros disponibles.</p>
+							</div>
+						) : (
+							<div className="space-y-4">
+								<div className="grid grid-cols-2 gap-4">
+									{logrosDestacados.map((logro) => (
+										<div
+											key={logro.id}
+											className={[
+												'p-4 rounded-2xl flex flex-col items-center text-center gap-2 border transition-all',
+												logro.estado === 'desbloqueado'
+													? 'bg-[#83fba5]/20 border-[#83fba5]/50'
+													: logro.estado === 'en-progreso'
+														? 'bg-white/15 border-white/35'
+														: 'bg-white/10 border-white/20 opacity-70'
+											].join(' ')}
+										>
+											<span className="text-2xl leading-none" role="img" aria-label={logro.nombre}>{logro.icono}</span>
+											<span className="text-[10px] font-bold uppercase leading-tight">{logro.nombre}</span>
+											<span className="text-[10px] font-semibold text-white/90">{logro.estadoLabel}</span>
+											{!logro.desbloqueado && (
+												<>
+													<div className="w-full h-1.5 rounded-full bg-white/20 overflow-hidden">
+														<div
+															className={[
+																'h-full rounded-full transition-all duration-500',
+																logro.estado === 'en-progreso' ? 'bg-[#83fba5]' : 'bg-white/50'
+															].join(' ')}
+															style={{ width: `${Math.min(logro.porcentaje, 100)}%` }}
+														/>
+													</div>
+													<span className="text-[10px] text-white/80">{logro.avance}/{logro.meta}</span>
+												</>
+											)}
+										</div>
+									))}
+								</div>
+							</div>
+						)}
+
+						<button
+							type="button"
+							onClick={() => setModalLogrosAbierto(true)}
+							className="w-full mt-6 py-3 bg-white/20 hover:bg-white/30 rounded-xl text-xs font-bold transition-colors"
+						>
 							Ver todos los logros
 						</button>
 					</div>
@@ -408,6 +578,111 @@ export default function Perfil() {
 					</div>
 				</aside>
 			</div>
+
+			<Modal
+				isOpen={modalLogrosAbierto}
+				onClose={() => setModalLogrosAbierto(false)}
+				title="Todos tus logros"
+				size="lg"
+				footer={(
+					<ActionButton type="button" variant="ghost" onClick={() => setModalLogrosAbierto(false)}>
+						Cerrar
+					</ActionButton>
+				)}
+			>
+				{cargandoLogros ? (
+					<div className="py-4 text-center space-y-3">
+						<Spinner size="md" className="text-[#24389c]" />
+						<p className="text-sm text-[#454652]">Cargando listado de logros...</p>
+					</div>
+				) : errorLogros ? (
+					<div className="rounded-xl border border-[#ba1a1a]/20 bg-[#ffdad6] p-4 space-y-3">
+						<p className="text-sm font-semibold text-[#93000a]">Hubo un problema al cargar los logros.</p>
+						<p className="text-xs text-[#410001]">{errorLogros}</p>
+						<ActionButton type="button" variant="danger" onClick={cargarLogros}>Reintentar</ActionButton>
+					</div>
+				) : logrosConEstado.length === 0 ? (
+					<div className="rounded-xl border border-[#c5c5d4]/30 bg-[#f8f9fa] p-4 text-sm text-[#454652]">
+						No hay logros configurados en este momento.
+					</div>
+				) : (
+					<div className="space-y-4">
+						<div className="rounded-2xl bg-[#f3f4f5] p-4 border border-[#c5c5d4]/20">
+							<div className="flex items-center justify-between gap-3">
+								<div>
+									<p className="text-xs uppercase tracking-wider font-bold text-[#757684]">Progreso general</p>
+									<p className="text-lg font-black text-[#24389c]">{estadisticas.desbloqueados} de {estadisticas.totalLogros} logros</p>
+								</div>
+								<p className="text-sm font-bold text-[#006d36]">{estadisticas.porcentajeGeneral}%</p>
+							</div>
+							<div className="mt-3 h-2 rounded-full bg-white overflow-hidden">
+								<div
+									className="h-full rounded-full bg-gradient-to-r from-[#24389c] to-[#83fba5] transition-all duration-500"
+									style={{ width: `${Math.min(100, Number(estadisticas.porcentajeGeneral || 0))}%` }}
+								/>
+							</div>
+						</div>
+
+						<div className="max-h-[52vh] overflow-y-auto pr-1 space-y-3">
+							{logrosConEstado.map((logro) => (
+								<div
+									key={logro.id}
+									className={[
+										'rounded-xl border p-4',
+										logro.estado === 'desbloqueado'
+											? 'bg-[#ecfff2] border-[#006d36]/20'
+											: logro.estado === 'en-progreso'
+												? 'bg-[#f5f6ff] border-[#24389c]/20'
+												: 'bg-[#f8f9fa] border-[#c5c5d4]/30'
+									].join(' ')}
+								>
+									<div className="flex items-start justify-between gap-3">
+										<div className="flex items-start gap-3 min-w-0">
+											<span className="text-2xl leading-none pt-0.5" role="img" aria-label={logro.nombre}>{logro.icono}</span>
+											<div className="min-w-0">
+												<p className="text-sm font-bold text-[#191c1d]">{logro.nombre}</p>
+												<p className="text-xs text-[#454652] mt-1">{logro.descripcion}</p>
+												<p className="text-[11px] text-[#757684] mt-1">
+													{logro.categoriaLabel} · {logro.tipoLabel}
+												</p>
+											</div>
+										</div>
+										<span
+											className={[
+												'text-[10px] font-bold uppercase tracking-wide px-2 py-1 rounded-full whitespace-nowrap',
+												logro.estado === 'desbloqueado'
+													? 'bg-[#006d36]/15 text-[#006d36]'
+													: logro.estado === 'en-progreso'
+														? 'bg-[#24389c]/15 text-[#24389c]'
+														: 'bg-[#757684]/15 text-[#454652]'
+											].join(' ')}
+										>
+											{logro.estadoLabel}
+										</span>
+									</div>
+
+									{!logro.desbloqueado ? (
+										<div className="mt-3">
+											<div className="flex items-center justify-between text-[11px] font-semibold text-[#454652] mb-1">
+												<span>Progreso actual</span>
+												<span>{logro.avance}/{logro.meta} ({Math.round(logro.porcentaje)}%)</span>
+											</div>
+											<div className="h-1.5 bg-white rounded-full overflow-hidden">
+												<div
+													className="h-full rounded-full bg-[#24389c] transition-all duration-500"
+													style={{ width: `${Math.min(100, logro.porcentaje)}%` }}
+												/>
+											</div>
+										</div>
+									) : (
+										<p className="mt-3 text-[11px] font-semibold text-[#006d36]">Meta completada: {logro.meta}/{logro.meta}</p>
+									)}
+								</div>
+							))}
+						</div>
+					</div>
+				)}
+			</Modal>
 		</div>
 	)
 }

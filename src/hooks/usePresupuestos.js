@@ -1,84 +1,110 @@
-import { useState, useEffect, useCallback } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useAppDataContext } from '../context/AppDataContext'
-import { getPresupuestos, createPresupuesto, updatePresupuesto, deletePresupuesto } from '../services/presupuestosService'
-import { useAuth } from './useAuth'
+
+function getPeriodo(fecha) {
+  const [anioTxt, mesTxt] = String(fecha || '').split('-')
+  return {
+    anio: Number(anioTxt),
+    mes: Number(mesTxt)
+  }
+}
+
+function enriquecerPresupuesto(presupuesto, transacciones = []) {
+  const gastado = transacciones
+    .filter((t) => {
+      if (t.tipo !== 'gasto') return false
+      if (Number(t.categoria_id) !== Number(presupuesto.categoria_id)) return false
+      const periodo = getPeriodo(t.fecha)
+      return periodo.mes === Number(presupuesto.mes) && periodo.anio === Number(presupuesto.anio)
+    })
+    .reduce((acc, t) => acc + Number(t.monto || 0), 0)
+
+  const limite = Number(presupuesto.monto_limite || 0)
+  const porcentaje = limite > 0 ? (gastado / limite) * 100 : 0
+  let estado = 'verde'
+
+  if (porcentaje >= 100) estado = 'rojo'
+  else if (porcentaje >= 80) estado = 'amarillo'
+
+  return {
+    ...presupuesto,
+    gastado,
+    porcentaje: Math.round(porcentaje * 10) / 10,
+    estado,
+    restante: Math.max(0, limite - gastado)
+  }
+}
 
 export function usePresupuestos(mes, anio) {
-  const { usuario } = useAuth()
-  const { presupuestos: presupuestosGlobales } = useAppDataContext()
-  const [presupuestos, setPresupuestos] = useState([])
-  const [loading, setLoading] = useState(false)
+  const {
+    presupuestos: presupuestosGlobales,
+    transacciones,
+    cargandoDatos,
+    crearPresupuesto,
+    actualizarPresupuesto,
+    eliminarPresupuesto
+  } = useAppDataContext()
+  const [loadingOperacion, setLoadingOperacion] = useState(false)
 
-  // Cargar presupuestos filtrados por mes y año
-  useEffect(() => {
-    if (!usuario?.id || !mes || !anio) return
+  const presupuestos = useMemo(
+    () => presupuestosGlobales
+      .filter((p) => Number(p.mes) === Number(mes) && Number(p.anio) === Number(anio))
+      .map((p) => enriquecerPresupuesto(p, transacciones)),
+    [presupuestosGlobales, transacciones, mes, anio]
+  )
 
-    const cargarPresupuestos = async () => {
-      setLoading(true)
-      try {
-        const datos = await getPresupuestos(usuario.id, mes, anio)
-        setPresupuestos(datos)
-      } catch (error) {
-        console.error('Error al cargar presupuestos:', error)
-        setPresupuestos([])
-      } finally {
-        setLoading(false)
-      }
-    }
-
-    cargarPresupuestos()
-  }, [usuario?.id, mes, anio])
-
-  // ✅ FIX: resumen como objeto directo, no como función envuelta en useCallback
-  const resumen = {
+  const resumen = useMemo(() => ({
     verde: presupuestos.filter((p) => p.estado === 'verde').length,
     amarillo: presupuestos.filter((p) => p.estado === 'amarillo').length,
-    rojo: presupuestos.filter((p) => p.estado === 'rojo').length,
-  }
+    rojo: presupuestos.filter((p) => p.estado === 'rojo').length
+  }), [presupuestos])
 
-  // Crear presupuesto
   const crear = useCallback(
     async (data) => {
-      if (!usuario?.id) throw new Error('Usuario no autenticado')
-      const nuevoPresupuesto = await createPresupuesto({
-        ...data,
-        user_id: usuario.id,
-        mes,
-        anio,
-      })
-      setPresupuestos((prev) => [...prev, nuevoPresupuesto])
-      return nuevoPresupuesto
+      setLoadingOperacion(true)
+      try {
+        return await crearPresupuesto({
+          ...data,
+          mes,
+          anio
+        })
+      } finally {
+        setLoadingOperacion(false)
+      }
     },
-    [usuario?.id, mes, anio]
+    [crearPresupuesto, mes, anio]
   )
 
-  // ✅ FIX: Se pasan mes y anio para poder enriquecer el resultado de updatePresupuesto
   const actualizar = useCallback(
     async (id, data) => {
-      if (!usuario?.id) throw new Error('Usuario no autenticado')
-      const presupuestoActualizado = await updatePresupuesto(id, usuario.id, data, mes, anio)
-      setPresupuestos((prev) => prev.map((p) => (p.id === id ? presupuestoActualizado : p)))
-      return presupuestoActualizado
+      setLoadingOperacion(true)
+      try {
+        return await actualizarPresupuesto(id, data, { mes, anio })
+      } finally {
+        setLoadingOperacion(false)
+      }
     },
-    [usuario?.id, mes, anio]
+    [actualizarPresupuesto, mes, anio]
   )
 
-  // Eliminar presupuesto
   const eliminar = useCallback(
     async (id) => {
-      if (!usuario?.id) throw new Error('Usuario no autenticado')
-      await deletePresupuesto(id, usuario.id)
-      setPresupuestos((prev) => prev.filter((p) => p.id !== id))
+      setLoadingOperacion(true)
+      try {
+        await eliminarPresupuesto(id)
+      } finally {
+        setLoadingOperacion(false)
+      }
     },
-    [usuario?.id]
+    [eliminarPresupuesto]
   )
 
   return {
     presupuestos,
-    loading,
+    loading: cargandoDatos || loadingOperacion,
     resumen,
     crear,
     actualizar,
-    eliminar,
+    eliminar
   }
 }

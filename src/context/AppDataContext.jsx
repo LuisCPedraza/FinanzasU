@@ -2,7 +2,12 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useAuthContext } from './AuthContext'
 import { listarCategorias, crearCategoria as crearCategoriaService, actualizarCategoria as actualizarCategoriaService, eliminarCategoria as eliminarCategoriaService } from '../services/categoriasService'
 import { listarTransacciones, crearTransaccion as crearTransaccionService, actualizarTransaccion as actualizarTransaccionService, eliminarTransaccion as eliminarTransaccionService } from '../services/transaccionesService'
-import { listarPresupuestos } from '../services/presupuestosService'
+import {
+  listarPresupuestos,
+  createPresupuesto as crearPresupuestoService,
+  updatePresupuesto as actualizarPresupuestoService,
+  deletePresupuesto as eliminarPresupuestoService
+} from '../services/presupuestosService'
 import { useNotificationsContext } from './NotificationsContext'
 import { useLogrosContext } from './LogrosContext'
 
@@ -150,7 +155,7 @@ export function AppDataProvider({ children }) {
     }
 
     return nuevaTransaccion
-  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion])
+  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion, evaluarYActualizarLogros])
 
   const actualizarTransaccion = useCallback(async (id, data) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
@@ -218,7 +223,7 @@ export function AppDataProvider({ children }) {
     }
 
     return actualizada
-  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion])
+  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion, evaluarYActualizarLogros])
 
   const eliminarTransaccion = useCallback(async (id) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
@@ -256,16 +261,104 @@ export function AppDataProvider({ children }) {
     if (!usuario?.id) throw new Error('Sesion invalida.')
     setErrorGlobal('')
     const actualizada = await actualizarCategoriaService(id, usuario.id, data)
-    setCategorias((prev) => prev.map((c) => (c.id === id ? actualizada : c)))
+    const nextCategorias = categorias.map((c) => (c.id === id ? actualizada : c))
+    setCategorias(nextCategorias)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos, categorias: nextCategorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
     return actualizada
-  }, [usuario?.id])
+  }, [usuario?.id, categorias, transacciones, presupuestos, evaluarYActualizarLogros])
 
   const eliminarCategoria = useCallback(async (id) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
     setErrorGlobal('')
     await eliminarCategoriaService(id, usuario.id)
-    setCategorias((prev) => prev.filter((c) => c.id !== id))
-  }, [usuario?.id])
+    const nextCategorias = categorias.filter((c) => c.id !== id)
+    setCategorias(nextCategorias)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos, categorias: nextCategorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+  }, [usuario?.id, categorias, transacciones, presupuestos, evaluarYActualizarLogros])
+
+  const crearPresupuesto = useCallback(async ({ categoria_id, monto_limite, mes, anio }) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+
+    const nuevoPresupuesto = await crearPresupuestoService({
+      user_id: usuario.id,
+      categoria_id,
+      monto_limite,
+      mes,
+      anio
+    })
+
+    const nextPresupuestos = [nuevoPresupuesto, ...presupuestos]
+    setPresupuestos(nextPresupuestos)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos: nextPresupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
+    return nuevoPresupuesto
+  }, [usuario?.id, presupuestos, transacciones, categorias, evaluarYActualizarLogros])
+
+  const actualizarPresupuesto = useCallback(async (id, data, periodo = {}) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+
+    const presupuestoActual = presupuestos.find((p) => p.id === id)
+    const mesObjetivo = Number(periodo.mes ?? presupuestoActual?.mes)
+    const anioObjetivo = Number(periodo.anio ?? presupuestoActual?.anio)
+
+    if (!Number.isFinite(mesObjetivo) || !Number.isFinite(anioObjetivo)) {
+      throw new Error('No se pudo determinar el periodo del presupuesto.')
+    }
+
+    const presupuestoActualizado = await actualizarPresupuestoService(
+      id,
+      usuario.id,
+      data,
+      mesObjetivo,
+      anioObjetivo
+    )
+
+    const nextPresupuestos = presupuestos.map((p) => (
+      p.id === id ? { ...p, ...presupuestoActualizado } : p
+    ))
+    setPresupuestos(nextPresupuestos)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos: nextPresupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
+    return presupuestoActualizado
+  }, [usuario?.id, presupuestos, transacciones, categorias, evaluarYActualizarLogros])
+
+  const eliminarPresupuesto = useCallback(async (id) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+
+    await eliminarPresupuestoService(id, usuario.id)
+    const nextPresupuestos = presupuestos.filter((p) => p.id !== id)
+    setPresupuestos(nextPresupuestos)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos: nextPresupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+  }, [usuario?.id, presupuestos, transacciones, categorias, evaluarYActualizarLogros])
 
   const totales = useMemo(() => {
     const totalIngresos = transacciones
@@ -298,6 +391,9 @@ export function AppDataProvider({ children }) {
     crearCategoria,
     actualizarCategoria,
     eliminarCategoria,
+    crearPresupuesto,
+    actualizarPresupuesto,
+    eliminarPresupuesto,
     limpiarEstado
   }), [
     categorias,
@@ -313,6 +409,9 @@ export function AppDataProvider({ children }) {
     crearCategoria,
     actualizarCategoria,
     eliminarCategoria,
+    crearPresupuesto,
+    actualizarPresupuesto,
+    eliminarPresupuesto,
     limpiarEstado
   ])
 
