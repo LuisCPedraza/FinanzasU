@@ -69,3 +69,20 @@ CREATE POLICY "notificaciones_update" ON public.notificaciones
 
 CREATE POLICY "notificaciones_delete" ON public.notificaciones
   FOR DELETE USING (auth.uid() = user_id);
+
+-- Catálogo de logros: lectura pública (todos pueden ver el catálogo)
+CREATE POLICY "catalogo_logros_select_all" ON public.catalogo_logros
+  FOR SELECT USING (true);
+
+-- Progreso de logros: solo los del usuario autenticado
+CREATE POLICY "progreso_logros_select" ON public.progreso_logros
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "progreso_logros_insert" ON public.progreso_logros
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "progreso_logros_update" ON public.progreso_logros
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "progreso_logros_delete" ON public.progreso_logros
+  FOR DELETE USING (auth.uid() = user_id);
