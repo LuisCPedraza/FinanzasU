@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "node scripts/seed-transacciones.js",
+    "seed:clean": "node scripts/seed-transacciones.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
