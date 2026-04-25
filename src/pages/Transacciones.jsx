@@ -14,6 +14,7 @@ import { useCategorias } from '../hooks/useCategorias'
 import Modal from '../components/ui/Modal'
 import FiltrosTransacciones from '../components/ui/FiltrosTransacciones'
 import Paginacion from '../components/ui/Paginacion'
+import BotonExportarCSV from '../components/ui/BotonExportarCSV'
 import { formatMoneda } from '../utils/formatMoneda'
 import { validateTransaccionForm, hasErrors } from '../utils/validationHelpers'
 
@@ -154,12 +155,20 @@ export default function Transacciones() {
           </h1>
           <p className="text-sm text-[#454652] mt-1">Gestiona tus ingresos y gastos</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#24389c] to-[#3f51b5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#24389c]/20 hover:opacity-90 transition-all"
-        >
-          <Plus className="w-4 h-4" /> Agregar transaccion
-        </button>
+        <div className="flex items-center gap-2">
+          <BotonExportarCSV
+            transaccionesPaginadas={transaccionesPaginadas}
+            transaccionesFiltradas={transaccionesFiltradas}
+            categorias={categorias}
+            filtros={filtros}
+          />
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#24389c] to-[#3f51b5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#24389c]/20 hover:opacity-90 transition-all"
+          >
+            <Plus className="w-4 h-4" /> Agregar transaccion
+          </button>
+        </div>
       </div>
 
       <FiltrosTransacciones

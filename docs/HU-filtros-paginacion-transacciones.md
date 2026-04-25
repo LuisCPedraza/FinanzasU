@@ -148,8 +148,11 @@ Elimina **únicamente** las transacciones cuya descripción empiece con `[SEED]`
 ### Scripts npm (atajos)
 
 ```bash
-npm run seed -- <email> <password>          # insertar
-npm run seed:clean -- <email> <password>    # limpiar
+# Insertar 75 transacciones de prueba
+node scripts/seed-transacciones.js tu@email.com tuPassword
+
+# Eliminar solo los registros de prueba
+node scripts/seed-transacciones.js tu@email.com tuPassword --clean
 ```
 
 ### Comportamiento del seeder por pasos
