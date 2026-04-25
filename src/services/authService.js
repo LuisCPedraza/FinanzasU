@@ -194,3 +194,42 @@ export async function cambiarContrasenaUsuario({ newPassword }) {
   if (error) throw mapAuthError(error, MENSAJE_PASSWORD_INVALIDA)
   return data
 }
+
+/**
+ * Solicita enlace de recuperacion de contrasena por correo electronico.
+ * Siempre devuelve un mensaje neutral sin revelar si el email existe,
+ * para evitar enumeracion de cuentas.
+ *
+ * @param {{ email: string }} params
+ * @returns {Promise<string>} Mensaje de confirmacion neutral
+ */
+export async function solicitarRecuperacionContrasena({ email }) {
+  if (!isSupabaseConfigured) {
+    throw new Error(MENSAJE_SUPABASE_NO_CONFIGURADO)
+  }
+
+  const emailNormalizado = (email || '').trim().toLowerCase()
+
+  if (!emailNormalizado || !EMAIL_REGEX.test(emailNormalizado)) {
+    throw new Error(MENSAJE_EMAIL_INVALIDO)
+  }
+
+  // Construir URL de redireccion hacia la pagina de reset
+  const redirectTo = `${window.location.origin}/reset-password`
+
+  const { error } = await supabase.auth.resetPasswordForEmail(emailNormalizado, {
+    redirectTo
+  })
+
+  // Propagamos solo errores criticos (rate limit, etc.)
+  // Para email no encontrado NO lanzamos error → mensaje neutral
+  if (error) {
+    const msg = (error.message || '').toLowerCase()
+    if (msg.includes('rate limit') || (error.code || '').includes('rate_limit')) {
+      throw mapAuthError(error)
+    }
+    // Cualquier otro error se silencia para no revelar existencia del email
+  }
+
+  return 'Si el correo esta registrado, recibiras un enlace de recuperacion en tu bandeja de entrada.'
+}

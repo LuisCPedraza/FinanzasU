@@ -1,5 +1,9 @@
 import { useAuthContext } from '../context/AuthContext'
 
+/**
+ * Hook publico para acceder a las funciones de autenticacion.
+ * Incluye: login, registro, logout, perfil, contrasena y recuperacion.
+ */
 export function useAuth() {
   const {
     usuario,
@@ -8,7 +12,8 @@ export function useAuth() {
     iniciarSesion,
     cerrarSesion,
     actualizarPerfil,
-    cambiarContrasena
+    cambiarContrasena,
+    solicitarRecuperacion
   } = useAuthContext()
 
   return {
@@ -18,6 +23,7 @@ export function useAuth() {
     iniciarSesion,
     cerrarSesion,
     actualizarPerfil,
-    cambiarContrasena
+    cambiarContrasena,
+    solicitarRecuperacion
   }
 }

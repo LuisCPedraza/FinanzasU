@@ -3,6 +3,7 @@ ALTER TABLE public.perfiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.categorias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.transacciones ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.presupuestos ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.notificaciones ENABLE ROW LEVEL SECURITY;
 
 -- Perfiles: cada usuario solo ve y edita el suyo
 CREATE POLICY "perfil_select" ON public.perfiles
@@ -54,4 +55,34 @@ CREATE POLICY "presupuestos_update" ON public.presupuestos
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
 CREATE POLICY "presupuestos_delete" ON public.presupuestos
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Notificaciones: solo las del usuario autenticado
+CREATE POLICY "notificaciones_select" ON public.notificaciones
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "notificaciones_insert" ON public.notificaciones
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "notificaciones_update" ON public.notificaciones
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "notificaciones_delete" ON public.notificaciones
+  FOR DELETE USING (auth.uid() = user_id);
+
+-- Catálogo de logros: lectura pública (todos pueden ver el catálogo)
+CREATE POLICY "catalogo_logros_select_all" ON public.catalogo_logros
+  FOR SELECT USING (true);
+
+-- Progreso de logros: solo los del usuario autenticado
+CREATE POLICY "progreso_logros_select" ON public.progreso_logros
+  FOR SELECT USING (auth.uid() = user_id);
+
+CREATE POLICY "progreso_logros_insert" ON public.progreso_logros
+  FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "progreso_logros_update" ON public.progreso_logros
+  FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "progreso_logros_delete" ON public.progreso_logros
   FOR DELETE USING (auth.uid() = user_id);

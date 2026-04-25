@@ -31,6 +31,7 @@ export const supabase = isSupabaseConfigured
 				updateUser: async () => ({ data: null, error: authUnavailableError() }),
 				signUp: async () => ({ data: null, error: authUnavailableError() }),
 				signInWithPassword: async () => ({ data: null, error: authUnavailableError() }),
-				signOut: async () => ({ error: null })
+				signOut: async () => ({ error: null }),
+				resetPasswordForEmail: async () => ({ data: null, error: authUnavailableError() })
 			}
 		}
