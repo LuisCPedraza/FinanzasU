@@ -5,10 +5,18 @@ import {
   crearNotificacion,
   listarNotificaciones,
   marcarNotificacionLeida,
-  marcarTodasComoLeidas
+  marcarTodasComoLeidas,
+  obtenerPreferencias,
+  guardarPreferencias
 } from '../services/notificacionesService'
 
 const NotificationsContext = createContext(null)
+
+const PREFERENCIAS_DEFAULT = {
+  alertas_diarias: true,
+  resumen_semanal: true,
+  novedades_sistema: false
+}
 
 export function NotificationsProvider({ children }) {
   const { usuario } = useAuthContext()
@@ -17,11 +25,18 @@ export function NotificationsProvider({ children }) {
   const [cargandoNotificaciones, setCargandoNotificaciones] = useState(false)
   const [errorNotificaciones, setErrorNotificaciones] = useState('')
 
+  // Estado de preferencias
+  const [preferencias, setPreferencias] = useState(PREFERENCIAS_DEFAULT)
+  const [cargandoPreferencias, setCargandoPreferencias] = useState(false)
+  const [errorPreferencias, setErrorPreferencias] = useState('')
+
   const limpiarNotificaciones = useCallback(() => {
     setNotificaciones([])
     setNoLeidas(0)
     setErrorNotificaciones('')
     setCargandoNotificaciones(false)
+    setPreferencias(PREFERENCIAS_DEFAULT)
+    setErrorPreferencias('')
   }, [])
 
   const cargarNotificaciones = useCallback(async () => {
@@ -47,9 +62,49 @@ export function NotificationsProvider({ children }) {
     }
   }, [limpiarNotificaciones, usuario?.id])
 
+  // Cargar preferencias desde Supabase
+  const cargarPreferencias = useCallback(async () => {
+    if (!usuario?.id) return
+
+    setCargandoPreferencias(true)
+    setErrorPreferencias('')
+
+    try {
+      const data = await obtenerPreferencias(usuario.id)
+      setPreferencias(data)
+    } catch (error) {
+      setErrorPreferencias(error.message || 'No se pudieron cargar las preferencias.')
+    } finally {
+      setCargandoPreferencias(false)
+    }
+  }, [usuario?.id])
+
+  // Actualizar un switch y persistir en BD
+  const actualizarPreferencia = useCallback(async (campo, valor) => {
+    const anteriores = preferencias
+
+    // Optimistic update: actualiza UI inmediatamente
+    const nuevas = { ...preferencias, [campo]: valor }
+    setPreferencias(nuevas)
+
+    try {
+      const guardadas = await guardarPreferencias(usuario.id, nuevas)
+      setPreferencias(guardadas)
+      return { ok: true }
+    } catch (error) {
+      // Revertir si falla
+      setPreferencias(anteriores)
+      return { ok: false, mensaje: error.message || 'No se pudo guardar la preferencia.' }
+    }
+  }, [preferencias, usuario?.id])
+
   useEffect(() => {
     cargarNotificaciones()
   }, [cargarNotificaciones])
+
+  useEffect(() => {
+    cargarPreferencias()
+  }, [cargarPreferencias])
 
   const registrarNotificacion = useCallback(async (payload) => {
     if (!usuario?.id) return { skipped: true, data: null }
@@ -92,7 +147,13 @@ export function NotificationsProvider({ children }) {
     registrarNotificacion,
     marcarLeida,
     marcarTodasLeidas,
-    limpiarNotificaciones
+    limpiarNotificaciones,
+    // Preferencias
+    preferencias,
+    cargandoPreferencias,
+    errorPreferencias,
+    cargarPreferencias,
+    actualizarPreferencia
   }), [
     notificaciones,
     noLeidas,
@@ -102,7 +163,12 @@ export function NotificationsProvider({ children }) {
     registrarNotificacion,
     marcarLeida,
     marcarTodasLeidas,
-    limpiarNotificaciones
+    limpiarNotificaciones,
+    preferencias,
+    cargandoPreferencias,
+    errorPreferencias,
+    cargarPreferencias,
+    actualizarPreferencia
   ])
 
   return <NotificationsContext.Provider value={value}>{children}</NotificationsContext.Provider>
