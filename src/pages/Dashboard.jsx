@@ -1,0 +1,68 @@
+import { useAuth } from '../hooks/useAuth'
+import { useInitialData } from '../hooks/useInitialData'
+import { useAppDataContext } from '../context/AppDataContext'
+import { Link } from 'react-router-dom'
+
+export default function Dashboard() {
+  const { usuario } = useAuth()
+  const { transacciones, cargandoDatos, errorGlobal } = useInitialData()
+  const { totales } = useAppDataContext()
+
+  return (
+    <div className="mx-auto max-w-4xl rounded-4xl border border-[#c5c5d4]/35 bg-white/80 p-6 shadow-xl shadow-[#24389c]/10 backdrop-blur-sm md:p-8">
+      <div className="space-y-6">
+        <h1 className="text-2xl font-bold text-indigo-600 mb-2">
+          Bienvenido a FinanzasU
+        </h1>
+        <p className="text-gray-600">
+          Sesión activa como: <strong>{usuario?.email}</strong>
+        </p>
+
+        <div className="flex flex-wrap gap-3">
+          <Link
+            to="/perfil"
+            className="bg-white border border-indigo-200 text-indigo-700 px-4 py-2 rounded-lg hover:bg-indigo-50"
+          >
+            Ir a mi perfil
+          </Link>
+          <Link
+            to="/transacciones"
+            className="bg-indigo-600 text-white px-4 py-2 rounded-lg hover:bg-indigo-700"
+          >
+            Nueva transaccion
+          </Link>
+        </div>
+
+        {errorGlobal && (
+          <p className="rounded-lg bg-red-50 text-red-700 px-4 py-3 text-sm">
+            Error de carga: {errorGlobal}
+          </p>
+        )}
+
+        <section className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <article className="rounded-xl border p-4">
+            <p className="text-sm text-gray-500">Ingresos</p>
+            <p className="text-2xl font-semibold text-green-600">${totales.ingresos.toFixed(2)}</p>
+          </article>
+          <article className="rounded-xl border p-4">
+            <p className="text-sm text-gray-500">Gastos</p>
+            <p className="text-2xl font-semibold text-red-600">${totales.gastos.toFixed(2)}</p>
+          </article>
+          <article className="rounded-xl border p-4">
+            <p className="text-sm text-gray-500">Balance</p>
+            <p className="text-2xl font-semibold text-indigo-600">${totales.balance.toFixed(2)}</p>
+          </article>
+        </section>
+
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-gray-500">
+            {cargandoDatos ? 'Cargando datos...' : `Transacciones registradas: ${transacciones.length}`}
+          </p>
+          <Link to="/perfil" className="text-indigo-600 hover:underline">
+            Editar perfil
+          </Link>
+        </div>
+      </div>
+    </div>
+  )
+}
