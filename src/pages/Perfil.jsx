@@ -14,6 +14,7 @@ import {
 	EyeOff
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
+import { obtenerContextoAcademico, guardarContextoAcademico, SEMESTRES_VALIDOS, ESTADOS_VALIDOS } from '../services/perfilService'
 import useLogros from '../hooks/useLogros'
 import Modal from '../components/ui/Modal'
 import Spinner from '../components/ui/Spinner'
@@ -189,7 +190,14 @@ export default function Perfil() {
 	
 	const [modalLogrosAbierto, setModalLogrosAbierto] = useState(false)
 
-	const [errors, setErrors] = useState({})
+	const [semestre, setSemestre] = useState('')
+	const [metaGrado, setMetaGrado] = useState('')
+	const [estadoAcademico, setEstadoAcademico] = useState('Activo')
+	const [academicLoading, setAcademicLoading] = useState(false)
+	const [academicError, setAcademicError] = useState('')
+	const [cargandoAcademico, setCargandoAcademico] = useState(false)
+	
+const [errors, setErrors] = useState({})
 	const primeraCargaLogrosRef = useRef(true)
 	const desbloqueadosPreviosRef = useRef(new Set())
 
@@ -227,6 +235,20 @@ export default function Perfil() {
 		setNombre(userName)
 		setEmail(userEmail)
 	}, [userName, userEmail])
+
+
+	useEffect(() => {
+		if (!usuario?.id) return
+		setCargandoAcademico(true)
+		obtenerContextoAcademico(usuario.id)
+		.then((data) => {
+			setSemestre(data.semestre_actual || '')
+			setMetaGrado(data.meta_grado || '')
+			setEstadoAcademico(data.estado_academico || 'Activo')
+		})
+		.catch((err) => setAcademicError(err.message || 'No se pudo cargar el contexto académico.'))
+		.finally(() => setCargandoAcademico(false))
+	}, [usuario?.id])
 
 	useEffect(() => {
 		if (cargandoLogros) return
@@ -330,6 +352,25 @@ export default function Perfil() {
 	const handleDeleteAccount = () => {
 		toast('Accion no disponible por el momento.')
 	}
+	const handleSaveAcademic = async (e) => {
+		e.preventDefault()
+		setAcademicError('')
+		try {
+			setAcademicLoading(true)
+			await guardarContextoAcademico(usuario.id, {
+				semestre_actual: semestre,
+				meta_grado: metaGrado,
+				estado_academico: estadoAcademico
+			})
+			toast.success('Contexto académico actualizado correctamente.')
+		} catch (err) {
+			const msg = err?.message || 'No fue posible guardar el contexto académico.'
+			setAcademicError(msg)
+			toast.error(msg)
+		} finally {
+			setAcademicLoading(false)
+		}
+	}
 
 	return (
 		<div className="space-y-10 animate-[fadeIn_.35s_ease-out] pb-14 bg-[#f8f9fa] min-h-screen text-[#191c1d]">
@@ -406,25 +447,71 @@ export default function Perfil() {
 					</div>
 
 					<div className="bg-white p-6 md:p-8 rounded-[2rem] shadow-xl shadow-black/5">
-						<h3 className="font-bold text-lg md:text-xl mb-8 flex items-center gap-2">
-							<School className="w-5 h-5 text-[#24389c]" /> Contexto academico
+					<h3 className="font-bold text-lg md:text-xl mb-8 flex items-center gap-2">
+						<School className="w-5 h-5 text-[#24389c]" /> Contexto academico
 						</h3>
-
-						<div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-							<div className="bg-[#dee0ff]/40 p-6 rounded-3xl border border-[#bac3ff]/40 min-h-[120px]">
-								<span className="text-[10px] font-bold text-[#24389c]/70 uppercase tracking-widest">Semestre actual</span>
-								<p className="text-2xl font-black text-[#24389c] mt-3">Intermedio</p>
-							</div>
-							<div className="bg-[#83fba5]/30 p-6 rounded-3xl border border-[#006d36]/20 min-h-[120px]">
+						
+						{cargandoAcademico ? (
+							<div className="flex items-center gap-3 py-4">
+								<Spinner size="sm" className="text-[#24389c]" />
+								<p className="text-sm text-[#454652]">Cargando contexto académico...</p>
+								</div>
+								) : (
+								<form onSubmit={handleSaveAcademic} className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+									<div className="bg-[#dee0ff]/40 p-6 rounded-3xl border border-[#bac3ff]/40 min-h-[120px] flex flex-col gap-3">
+									<span className="text-[10px] font-bold text-[#24389c]/70 uppercase tracking-widest">Semestre actual</span>
+									<select
+									value={semestre}
+									onChange={(e) => setSemestre(e.target.value)}
+									className="w-full rounded-xl border border-[#bac3ff]/60 bg-white text-[#24389c] font-bold px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#dee0ff]"
+								>
+									<option value="">Seleccionar</option>
+									{SEMESTRES_VALIDOS.map((s) => (
+										<option key={s} value={s}>{s}</option>
+										))}
+									</select>
+								</div>
+								<div className="bg-[#83fba5]/30 p-6 rounded-3xl border border-[#006d36]/20 min-h-[120px] flex flex-col gap-3">
 								<span className="text-[10px] font-bold text-[#006d36]/70 uppercase tracking-widest">Meta de grado</span>
-								<p className="text-2xl font-black text-[#006d36] mt-3">2027</p>
+								<input
+								type="number"
+								min="2024"
+								max="2090"
+								value={metaGrado}
+								onChange={(e) => setMetaGrado(e.target.value)}
+								placeholder="Ej: 2027"
+								className="w-full rounded-xl border border-[#006d36]/30 bg-white text-[#006d36] font-bold px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#83fba5]"
+							/>
 							</div>
-							<div className="bg-[#f3f4f5] p-6 rounded-3xl border border-[#c5c5d4]/20 min-h-[120px]">
-								<span className="text-[10px] font-bold text-[#757684] uppercase tracking-widest">Estado academico</span>
-								<p className="text-2xl font-black text-[#191c1d] mt-3">Activo</p>
-							</div>
+							
+							<div className="bg-[#f3f4f5] p-6 rounded-3xl border border-[#c5c5d4]/20 min-h-[120px] flex flex-col gap-3">
+							<span className="text-[10px] font-bold text-[#757684] uppercase tracking-widest">Estado academico</span>
+							<select
+							value={estadoAcademico}
+							onChange={(e) => setEstadoAcademico(e.target.value)}
+							className="w-full rounded-xl border border-[#c5c5d4]/40 bg-white text-[#191c1d] font-bold px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c5c5d4]"
+						>
+							
+							{ESTADOS_VALIDOS.map((s) => (
+								<option key={s} value={s}>{s}</option>
+								))}
+							</select>
 						</div>
-					</div>
+						
+						{academicError && (
+							<div className="sm:col-span-3">
+								<p className="text-sm text-[#ba1a1a] bg-[#ffdad6] px-3 py-2 rounded-lg">{academicError}</p>
+							</div>
+						)}
+						
+						<div className="sm:col-span-3">
+							<ActionButton type="submit" loading={academicLoading}>
+								Guardar contexto académico
+							</ActionButton>
+						</div>
+					</form>
+				)}
+			</div>
 
 					<div className="bg-[#f3f4f5] p-6 md:p-8 rounded-[2rem]">
 						<h3 className="font-bold text-lg md:text-xl mb-8 flex items-center gap-2 text-[#24389c]">
