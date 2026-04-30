@@ -1,3 +1,4 @@
+import { useNotificationsContext } from '../context/NotificationsContext'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import toast from 'react-hot-toast'
 import {
@@ -175,9 +176,17 @@ export default function Perfil() {
 	const [profileError, setProfileError] = useState('')
 	const [passwordError, setPasswordError] = useState('')
 
-	const [alertsDiarias, setAlertsDiarias] = useState(true)
-	const [resumenSemanal, setResumenSemanal] = useState(true)
-	const [novedadesSistema, setNovedadesSistema] = useState(false)
+	const { preferencias, cargandoPreferencias, errorPreferencias, actualizarPreferencia } = useNotificationsContext()
+	const handleTogglePreferencia = async (campo) => {
+		const valorActual = preferencias[campo]
+		const { ok, mensaje } = await actualizarPreferencia(campo, !valorActual)
+		if (ok) {
+			toast.success('Preferencia guardada.')
+		} else {
+			toast.error(mensaje || 'No se pudo guardar la preferencia.')
+		}
+	}
+	
 	const [modalLogrosAbierto, setModalLogrosAbierto] = useState(false)
 
 	const [errors, setErrors] = useState({})
@@ -544,39 +553,60 @@ export default function Perfil() {
 							Ver todos los logros
 						</button>
 					</div>
-
 					<div className="bg-[#f3f4f5] p-6 md:p-8 rounded-[2rem]">
-						<h3 className="font-bold text-lg md:text-xl mb-6 flex items-center gap-2">
-							<BellRing className="w-5 h-5 text-[#24389c]" /> Reglas de notificacion
-						</h3>
+  <h3 className="font-bold text-lg md:text-xl mb-6 flex items-center gap-2">
+    <BellRing className="w-5 h-5 text-[#24389c]" /> Reglas de notificacion
+  </h3>
 
-						<div className="space-y-6">
-							<div className="flex items-center justify-between">
-								<div className="min-w-0 pr-2">
-									<p className="text-sm font-bold truncate">Alertas diarias de presupuesto</p>
-									<p className="text-[10px] text-[#454652]">Seguimiento instantaneo de gasto</p>
-								</div>
-								<Toggle enabled={alertsDiarias} onToggle={() => setAlertsDiarias((v) => !v)} />
-							</div>
+  {cargandoPreferencias ? (
+    <div className="flex items-center gap-3 py-4">
+      <Spinner size="sm" className="text-[#24389c]" />
+      <p className="text-sm text-[#454652]">Cargando preferencias...</p>
+    </div>
+  ) : errorPreferencias ? (
+    <div className="rounded-xl bg-[#ffdad6] border border-[#ba1a1a]/20 p-4">
+      <p className="text-sm text-[#93000a] font-semibold">No se pudieron cargar las preferencias.</p>
+      <p className="text-xs text-[#410001] mt-1">{errorPreferencias}</p>
+    </div>
+  ) : (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="min-w-0 pr-2">
+          <p className="text-sm font-bold truncate">Alertas diarias de presupuesto</p>
+          <p className="text-[10px] text-[#454652]">Seguimiento instantaneo de gasto</p>
+        </div>
+        <Toggle
+          enabled={preferencias.alertas_diarias}
+          onToggle={() => handleTogglePreferencia('alertas_diarias')}
+        />
+      </div>
 
-							<div className="flex items-center justify-between">
-								<div className="min-w-0 pr-2">
-									<p className="text-sm font-bold truncate">Resumen semanal</p>
-									<p className="text-[10px] text-[#454652]">Lunes en la manana</p>
-								</div>
-								<Toggle enabled={resumenSemanal} onToggle={() => setResumenSemanal((v) => !v)} />
-							</div>
+      <div className="flex items-center justify-between">
+        <div className="min-w-0 pr-2">
+          <p className="text-sm font-bold truncate">Resumen semanal</p>
+          <p className="text-[10px] text-[#454652]">Lunes en la manana</p>
+        </div>
+        <Toggle
+          enabled={preferencias.resumen_semanal}
+          onToggle={() => handleTogglePreferencia('resumen_semanal')}
+        />
+      </div>
 
-							<div className="flex items-center justify-between">
-								<div className="min-w-0 pr-2">
-									<p className="text-sm font-bold truncate">Novedades del sistema</p>
-									<p className="text-[10px] text-[#454652]">Actualizaciones importantes</p>
-								</div>
-								<Toggle enabled={novedadesSistema} onToggle={() => setNovedadesSistema((v) => !v)} />
-							</div>
-						</div>
-					</div>
-				</aside>
+      <div className="flex items-center justify-between">
+        <div className="min-w-0 pr-2">
+          <p className="text-sm font-bold truncate">Novedades del sistema</p>
+          <p className="text-[10px] text-[#454652]">Actualizaciones importantes</p>
+        </div>
+        <Toggle
+          enabled={preferencias.novedades_sistema}
+          onToggle={() => handleTogglePreferencia('novedades_sistema')}
+        />
+      </div>
+    </div>
+  )}
+</div>					
+					
+</aside>
 			</div>
 
 			<Modal

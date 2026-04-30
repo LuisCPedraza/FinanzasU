@@ -115,3 +115,45 @@ export async function registrarEventoLogro({ userId, logroId, nombreLogro }) {
     dedupeMinutes: null
   })
 }
+// ─── Preferencias de notificación ───────────────────────────────────────────
+
+export async function obtenerPreferencias(userId) {
+  const { data, error } = await supabase
+    .from('preferencias_notificacion')
+    .select('*')
+    .eq('user_id', userId)
+    .maybeSingle()
+
+  if (error) throw error
+
+  // Si no existe registro aún, devolver valores por defecto
+  if (!data) {
+    return {
+      alertas_diarias: true,
+      resumen_semanal: true,
+      novedades_sistema: false
+    }
+  }
+
+  return data
+}
+
+export async function guardarPreferencias(userId, { alertas_diarias, resumen_semanal, novedades_sistema }) {
+  const { data, error } = await supabase
+    .from('preferencias_notificacion')
+    .upsert(
+      {
+        user_id: userId,
+        alertas_diarias,
+        resumen_semanal,
+        novedades_sistema,
+        updated_at: new Date().toISOString()
+      },
+      { onConflict: 'user_id' }
+    )
+    .select('*')
+    .single()
+
+  if (error) throw error
+  return data
+}
