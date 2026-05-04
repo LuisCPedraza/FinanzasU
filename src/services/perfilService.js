@@ -1,12 +1,13 @@
 import { supabase } from './supabaseClient'
 
-const SEMESTRES_VALIDOS = ['Inicial', 'Básico', 'Intermedio', 'Avanzado', 'Final']
+const MAX_SEMESTRES = 10
+const SEMESTRES_OPCIONES = Array.from({ length: MAX_SEMESTRES }, (_, i) => i + 1)
 const ESTADOS_VALIDOS = ['Activo', 'Pausado', 'Egresado']
 
 export async function obtenerContextoAcademico(userId) {
   const { data, error } = await supabase
     .from('perfiles')
-    .select('semestre_actual, meta_grado, estado_academico')
+    .select('semestre_actual, total_semestres, meta_grado, estado_academico')
     .eq('id', userId)
     .maybeSingle()
 
@@ -14,15 +15,21 @@ export async function obtenerContextoAcademico(userId) {
 
   return {
     semestre_actual: data?.semestre_actual || '',
+    total_semestres: data?.total_semestres || '',
     meta_grado: data?.meta_grado || '',
     estado_academico: data?.estado_academico || 'Activo'
   }
 }
 
-export async function guardarContextoAcademico(userId, { semestre_actual, meta_grado, estado_academico }) {
-  // Validaciones
-  if (!semestre_actual || !SEMESTRES_VALIDOS.includes(semestre_actual)) {
-    throw new Error('Semestre actual no válido.')
+export async function guardarContextoAcademico(userId, { semestre_actual, total_semestres, meta_grado, estado_academico }) {
+  const totalSem = Number(total_semestres)
+  if (!totalSem || totalSem < 1 || totalSem > MAX_SEMESTRES) {
+    throw new Error(`Total de semestres debe ser entre 1 y ${MAX_SEMESTRES}.`)
+  }
+
+  const semestreActual = Number(semestre_actual)
+  if (!semestreActual || semestreActual < 1 || semestreActual > totalSem) {
+    throw new Error(`Semestre actual debe ser entre 1 y ${totalSem}.`)
   }
 
   const anio = Number(meta_grado)
@@ -36,20 +43,18 @@ export async function guardarContextoAcademico(userId, { semestre_actual, meta_g
 
   const { data, error } = await supabase
     .from('perfiles')
-    .upsert(
-      {
-        id: userId,
-        semestre_actual,
-        meta_grado: anio,
-        estado_academico
-      },
-      { onConflict: 'id' }
-    )
-    .select('semestre_actual, meta_grado, estado_academico')
+    .update({
+      semestre_actual: semestreActual,
+      total_semestres: totalSem,
+      meta_grado: anio,
+      estado_academico
+    })
+    .eq('id', userId)
+    .select('semestre_actual, total_semestres, meta_grado, estado_academico')
     .single()
 
   if (error) throw error
   return data
 }
 
-export { SEMESTRES_VALIDOS, ESTADOS_VALIDOS }
+export { SEMESTRES_OPCIONES, MAX_SEMESTRES, ESTADOS_VALIDOS }
