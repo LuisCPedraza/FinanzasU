@@ -14,7 +14,7 @@ import {
 	EyeOff
 } from 'lucide-react'
 import { useAuth } from '../hooks/useAuth'
-import { obtenerContextoAcademico, guardarContextoAcademico, SEMESTRES_VALIDOS, ESTADOS_VALIDOS } from '../services/perfilService'
+import { obtenerContextoAcademico, guardarContextoAcademico, SEMESTRES_OPCIONES, ESTADOS_VALIDOS } from '../services/perfilService'
 import useLogros from '../hooks/useLogros'
 import Modal from '../components/ui/Modal'
 import Spinner from '../components/ui/Spinner'
@@ -191,6 +191,7 @@ export default function Perfil() {
 	const [modalLogrosAbierto, setModalLogrosAbierto] = useState(false)
 
 	const [semestre, setSemestre] = useState('')
+	const [totalSemestres, setTotalSemestres] = useState('')
 	const [metaGrado, setMetaGrado] = useState('')
 	const [estadoAcademico, setEstadoAcademico] = useState('Activo')
 	const [academicLoading, setAcademicLoading] = useState(false)
@@ -243,6 +244,7 @@ const [errors, setErrors] = useState({})
 		obtenerContextoAcademico(usuario.id)
 		.then((data) => {
 			setSemestre(data.semestre_actual || '')
+			setTotalSemestres(data.total_semestres || '')
 			setMetaGrado(data.meta_grado || '')
 			setEstadoAcademico(data.estado_academico || 'Activo')
 		})
@@ -359,6 +361,7 @@ const [errors, setErrors] = useState({})
 			setAcademicLoading(true)
 			await guardarContextoAcademico(usuario.id, {
 				semestre_actual: semestre,
+				total_semestres: totalSemestres,
 				meta_grado: metaGrado,
 				estado_academico: estadoAcademico
 			})
@@ -457,54 +460,106 @@ const [errors, setErrors] = useState({})
 								<p className="text-sm text-[#454652]">Cargando contexto académico...</p>
 								</div>
 								) : (
-								<form onSubmit={handleSaveAcademic} className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-									<div className="bg-[#dee0ff]/40 p-6 rounded-3xl border border-[#bac3ff]/40 min-h-[120px] flex flex-col gap-3">
-									<span className="text-[10px] font-bold text-[#24389c]/70 uppercase tracking-widest">Semestre actual</span>
-									<select
-									value={semestre}
-									onChange={(e) => setSemestre(e.target.value)}
-									className="w-full rounded-xl border border-[#bac3ff]/60 bg-white text-[#24389c] font-bold px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#dee0ff]"
-								>
-									<option value="">Seleccionar</option>
-									{SEMESTRES_VALIDOS.map((s) => (
-										<option key={s} value={s}>{s}</option>
-										))}
-									</select>
+								<form onSubmit={handleSaveAcademic} className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+							{/* Semestre actual + Total semestres */}
+							<div className="sm:col-span-2 bg-[#dee0ff]/40 p-6 rounded-3xl border border-[#bac3ff]/40">
+								<span className="text-[10px] font-bold text-[#24389c]/70 uppercase tracking-widest block mb-4">Progreso de carrera</span>
+								<div className="grid grid-cols-2 gap-4 mb-4">
+									<div className="space-y-2">
+										<label htmlFor="total-semestres" className="text-xs font-semibold text-[#454652]">Total de semestres</label>
+										<select
+											id="total-semestres"
+											value={totalSemestres}
+											onChange={(e) => {
+												const nuevoTotal = e.target.value
+												setTotalSemestres(nuevoTotal)
+												if (semestre && Number(semestre) > Number(nuevoTotal)) {
+													setSemestre(nuevoTotal)
+												}
+											}}
+											className="w-full rounded-xl border border-[#bac3ff]/60 bg-white text-[#24389c] font-bold px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#dee0ff]"
+										>
+											<option value="">Seleccionar</option>
+											{SEMESTRES_OPCIONES.map((n) => (
+												<option key={n} value={n}>{n} semestres</option>
+											))}
+										</select>
+									</div>
+									<div className="space-y-2">
+										<label htmlFor="semestre-actual" className="text-xs font-semibold text-[#454652]">Semestre actual</label>
+										<select
+											id="semestre-actual"
+											value={semestre}
+											onChange={(e) => setSemestre(e.target.value)}
+											disabled={!totalSemestres}
+											className="w-full rounded-xl border border-[#bac3ff]/60 bg-white text-[#24389c] font-bold px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#dee0ff] disabled:opacity-50 disabled:cursor-not-allowed"
+										>
+											<option value="">{totalSemestres ? 'Seleccionar' : 'Primero elige total'}</option>
+											{totalSemestres && Array.from({ length: Number(totalSemestres) }, (_, i) => i + 1).map((n) => (
+												<option key={n} value={n}>Semestre {n}</option>
+											))}
+										</select>
+									</div>
 								</div>
-								<div className="bg-[#83fba5]/30 p-6 rounded-3xl border border-[#006d36]/20 min-h-[120px] flex flex-col gap-3">
+								{/* Visual progress indicator */}
+								{totalSemestres && semestre && (
+									<div className="space-y-2">
+										<div className="flex justify-between text-[10px] font-bold text-[#24389c]/70 uppercase tracking-wider">
+											<span>Semestre {semestre} de {totalSemestres}</span>
+											<span>{Math.round((Number(semestre) / Number(totalSemestres)) * 100)}%</span>
+										</div>
+										<div className="flex gap-1">
+											{Array.from({ length: Number(totalSemestres) }, (_, i) => (
+												<div
+													key={i}
+													className={[
+														'h-2 rounded-full flex-1 transition-all duration-300',
+														i < Number(semestre)
+															? 'bg-[#24389c]'
+															: 'bg-[#bac3ff]/40'
+													].join(' ')}
+												/>
+											))}
+										</div>
+									</div>
+								)}
+							</div>
+
+							{/* Meta de grado */}
+							<div className="bg-[#83fba5]/30 p-6 rounded-3xl border border-[#006d36]/20 flex flex-col gap-3">
 								<span className="text-[10px] font-bold text-[#006d36]/70 uppercase tracking-widest">Meta de grado</span>
 								<input
-								type="number"
-								min="2024"
-								max="2090"
-								value={metaGrado}
-								onChange={(e) => setMetaGrado(e.target.value)}
-								placeholder="Ej: 2027"
-								className="w-full rounded-xl border border-[#006d36]/30 bg-white text-[#006d36] font-bold px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#83fba5]"
-							/>
+									type="number"
+									min="2024"
+									max="2090"
+									value={metaGrado}
+									onChange={(e) => setMetaGrado(e.target.value)}
+									placeholder="Ej: 2027"
+									className="w-full rounded-xl border border-[#006d36]/30 bg-white text-[#006d36] font-bold px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#83fba5]"
+								/>
 							</div>
-							
-							<div className="bg-[#f3f4f5] p-6 rounded-3xl border border-[#c5c5d4]/20 min-h-[120px] flex flex-col gap-3">
-							<span className="text-[10px] font-bold text-[#757684] uppercase tracking-widest">Estado academico</span>
-							<select
-							value={estadoAcademico}
-							onChange={(e) => setEstadoAcademico(e.target.value)}
-							className="w-full rounded-xl border border-[#c5c5d4]/40 bg-white text-[#191c1d] font-bold px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-[#c5c5d4]"
-						>
-							
-							{ESTADOS_VALIDOS.map((s) => (
-								<option key={s} value={s}>{s}</option>
-								))}
-							</select>
-						</div>
+
+							{/* Estado académico */}
+							<div className="bg-[#f3f4f5] p-6 rounded-3xl border border-[#c5c5d4]/20 flex flex-col gap-3">
+								<span className="text-[10px] font-bold text-[#757684] uppercase tracking-widest">Estado academico</span>
+								<select
+									value={estadoAcademico}
+									onChange={(e) => setEstadoAcademico(e.target.value)}
+									className="w-full rounded-xl border border-[#c5c5d4]/40 bg-white text-[#191c1d] font-bold px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[#c5c5d4]"
+								>
+									{ESTADOS_VALIDOS.map((s) => (
+										<option key={s} value={s}>{s}</option>
+									))}
+								</select>
+							</div>
 						
 						{academicError && (
-							<div className="sm:col-span-3">
+							<div className="sm:col-span-2">
 								<p className="text-sm text-[#ba1a1a] bg-[#ffdad6] px-3 py-2 rounded-lg">{academicError}</p>
 							</div>
 						)}
 						
-						<div className="sm:col-span-3">
+						<div className="sm:col-span-2">
 							<ActionButton type="submit" loading={academicLoading}>
 								Guardar contexto académico
 							</ActionButton>

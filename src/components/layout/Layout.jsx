@@ -62,6 +62,7 @@ export default function Layout({ children }) {
 	}
 
 	const usaAnchoCompleto =
+		location.pathname.startsWith('/dashboard') ||
 		location.pathname.startsWith('/categorias') ||
 		location.pathname.startsWith('/perfil') ||
 		location.pathname.startsWith('/presupuestos')
