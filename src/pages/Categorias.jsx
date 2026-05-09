@@ -262,6 +262,37 @@ export default function Categorias() {
   const totalGasto = personalizadas.filter((c) => c.tipo === 'gasto').length
   const totalIngreso = personalizadas.filter((c) => c.tipo === 'ingreso').length
 
+  const reporteData = useMemo(() => {
+    const filtradas = transacciones.filter((t) => {
+      if (t.tipo !== reporteTipo) return false
+      if (reporteDesde && t.fecha < reporteDesde) return false
+      if (reporteHasta && t.fecha > reporteHasta) return false
+      return true
+    })
+
+    const agrupadas = {}
+    filtradas.forEach((t) => {
+      const key = t.categoria_id
+      if (!agrupadas[key]) agrupadas[key] = { total: 0, count: 0 }
+      agrupadas[key].total += Number(t.monto)
+      agrupadas[key].count++
+    })
+
+    const items = Object.entries(agrupadas)
+      .map(([catId, data]) => ({
+        cat: categorias.find((c) => c.id === Number(catId)),
+        catId: Number(catId),
+        ...data
+      }))
+      .filter((item) => item.cat)
+      .sort((a, b) => b.total - a.total)
+
+    const totalGeneral = items.reduce((acc, i) => acc + i.total, 0)
+    const maxTotal = items.length > 0 ? items[0].total : 0
+
+    return { items, totalGeneral, maxTotal, totalTransacciones: filtradas.length }
+  }, [transacciones, categorias, reporteDesde, reporteHasta, reporteTipo])
+
   const obtenerEstado = (index) => {
     const opciones = [
       {
