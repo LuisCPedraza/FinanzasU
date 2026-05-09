@@ -8,10 +8,28 @@ import {
   TrendingUp,
   Loader2,
   Tag,
-  Lock
+  Lock,
+  BarChart2,
+  Download,
+  Calendar,
+  ChevronDown,
+  FileSpreadsheet,
+  FileText
 } from 'lucide-react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  Tooltip,
+  ResponsiveContainer,
+  Cell
+} from 'recharts'
+import * as XLSX from 'xlsx'
 import { useCategorias } from '../hooks/useCategorias'
+import { useTransacciones } from '../hooks/useTransacciones'
 import { validateCategoriaForm, hasErrors } from '../utils/validationHelpers'
+import { formatMoneda } from '../utils/formatMoneda'
 
 const EMOJIS = [
   '🍔', '🛒', '🚌', '🏠', '💡', '📱', '🎓', '💊', '🎬', '🎮',
