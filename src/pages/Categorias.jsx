@@ -209,8 +209,31 @@ export default function Categorias() {
     eliminarCategoria
   } = useCategorias()
 
+  const { transacciones } = useTransacciones()
+
   const [search, setSearch] = useState('')
   const [modalOpen, setModalOpen] = useState(false)
+
+  const [reporteDesde, setReporteDesde] = useState(() => {
+    const d = new Date()
+    return new Date(d.getFullYear(), d.getMonth(), 1).toISOString().split('T')[0]
+  })
+  const [reporteHasta, setReporteHasta] = useState(
+    () => new Date().toISOString().split('T')[0]
+  )
+  const [reporteTipo, setReporteTipo] = useState('gasto')
+  const [exportDropdownAbierto, setExportDropdownAbierto] = useState(false)
+  const exportDropdownRef = useRef(null)
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (exportDropdownRef.current && !exportDropdownRef.current.contains(e.target)) {
+        setExportDropdownAbierto(false)
+      }
+    }
+    document.addEventListener('mousedown', handler)
+    return () => document.removeEventListener('mousedown', handler)
+  }, [])
   const [deleteModal, setDeleteModal] = useState(null)
   const [editando, setEditando] = useState(null)
   const [form, setForm] = useState(INITIAL_FORM)
