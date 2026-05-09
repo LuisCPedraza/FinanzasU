@@ -686,6 +686,239 @@ export default function Categorias() {
         )}
       </section>
 
+      {/* Reporte por categoria */}
+      <section className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+          <div>
+            <h3 className="text-2xl font-extrabold text-[#24389c]">Reporte por categoria</h3>
+            <p className="text-[#454652] text-sm mt-1">
+              Agrupacion real de tus transacciones segun categoria y periodo.
+            </p>
+          </div>
+          {reporteData.items.length > 0 && (
+            <div className="relative self-start sm:self-auto" ref={exportDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setExportDropdownAbierto((v) => !v)}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl text-sm font-semibold border border-[#c5c5d4]/40 text-[#454652] hover:bg-[#f3f4f5] transition-all bg-white"
+              >
+                <Download className="w-4 h-4" />
+                <span className="hidden sm:inline">Exportar</span>
+                <ChevronDown className={`w-4 h-4 transition-transform duration-200 ${exportDropdownAbierto ? 'rotate-180' : ''}`} />
+              </button>
+
+              {exportDropdownAbierto && (
+                <div className="absolute right-0 z-20 mt-2 w-64 rounded-2xl border border-[#c5c5d4]/30 bg-white shadow-xl shadow-black/10 overflow-hidden">
+                  <div className="px-4 pt-3 pb-1">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-[#757684]">Excel (.xlsx)</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { exportarReporteExcel(); setExportDropdownAbierto(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f3f4f5] transition-colors"
+                  >
+                    <FileSpreadsheet className="w-4 h-4 shrink-0 text-[#24389c]" />
+                    <span className="flex-1 text-sm text-[#191c1d]">
+                      Descargar reporte
+                      <span className="ml-1 text-xs text-[#757684]">· .xlsx</span>
+                    </span>
+                    <span className="text-xs text-[#757684] tabular-nums">{reporteData.items.length}</span>
+                  </button>
+
+                  <div className="px-4 pt-3 pb-1 border-t border-[#c5c5d4]/20 mt-1">
+                    <p className="text-[10px] uppercase tracking-widest font-bold text-[#757684]">CSV — compatible con Excel</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { exportarReporteCSV(); setExportDropdownAbierto(false) }}
+                    className="w-full flex items-center gap-3 px-4 py-2.5 text-left hover:bg-[#f3f4f5] transition-colors"
+                  >
+                    <FileText className="w-4 h-4 shrink-0 text-[#24389c]" />
+                    <span className="flex-1 text-sm text-[#191c1d]">
+                      Descargar reporte
+                      <span className="ml-1 text-xs text-[#757684]">· .csv</span>
+                    </span>
+                    <span className="text-xs text-[#757684] tabular-nums">{reporteData.items.length}</span>
+                  </button>
+                  <div className="h-2" />
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+
+        {/* Filtros del reporte */}
+        <UiCard padding="p-4">
+          <div className="flex flex-col sm:flex-row gap-4 flex-wrap">
+            <div className="flex items-center gap-2">
+              <Calendar className="w-4 h-4 text-[#757684] shrink-0" />
+              <div className="flex items-center gap-2">
+                <input
+                  type="date"
+                  value={reporteDesde}
+                  onChange={(e) => setReporteDesde(e.target.value)}
+                  className="rounded-xl border border-[#c5c5d4]/40 px-3 py-2 text-sm text-[#191c1d] focus:outline-none focus:ring-4 focus:ring-[#dee0ff] focus:border-[#24389c] transition-all"
+                />
+                <span className="text-[#757684] text-sm">a</span>
+                <input
+                  type="date"
+                  value={reporteHasta}
+                  onChange={(e) => setReporteHasta(e.target.value)}
+                  className="rounded-xl border border-[#c5c5d4]/40 px-3 py-2 text-sm text-[#191c1d] focus:outline-none focus:ring-4 focus:ring-[#dee0ff] focus:border-[#24389c] transition-all"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              {[
+                { value: 'gasto', label: 'Gastos' },
+                { value: 'ingreso', label: 'Ingresos' }
+              ].map(({ value, label }) => (
+                <button
+                  key={value}
+                  type="button"
+                  onClick={() => setReporteTipo(value)}
+                  className={cx(
+                    'px-4 py-2 rounded-xl text-sm font-semibold border transition-all',
+                    reporteTipo === value
+                      ? value === 'gasto'
+                        ? 'bg-[#ffdad6]/50 border-[#93000a]/30 text-[#93000a]'
+                        : 'bg-[#83fba5]/30 border-[#006d36]/30 text-[#006d36]'
+                      : 'border-[#c5c5d4]/40 text-[#757684] hover:bg-[#f3f4f5]'
+                  )}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </UiCard>
+
+        {reporteData.items.length === 0 ? (
+          <UiCard padding="p-10" className="text-center">
+            <BarChart2 className="w-12 h-12 mx-auto mb-3 opacity-30 text-[#757684]" />
+            <p className="font-semibold text-lg text-[#191c1d]">Sin movimientos en el periodo</p>
+            <p className="text-[#454652] text-sm mt-1">
+              No hay {reporteTipo === 'gasto' ? 'gastos' : 'ingresos'} registrados entre {reporteDesde} y {reporteHasta}.
+            </p>
+          </UiCard>
+        ) : (
+          <div className="space-y-6">
+            {/* Grafica de barras */}
+            <UiCard padding="p-6">
+              <p className="text-sm font-bold text-[#757684] mb-4 uppercase tracking-widest text-[10px]">
+                {reporteTipo === 'gasto' ? 'Gastos' : 'Ingresos'} por categoria
+              </p>
+              <ResponsiveContainer width="100%" height={260}>
+                <BarChart
+                  data={reporteData.items.map((item) => ({
+                    nombre: `${item.cat.icono || ''} ${item.cat.nombre}`,
+                    total: item.total,
+                    color: item.cat.color || '#24389c'
+                  }))}
+                  margin={{ top: 4, right: 8, left: 8, bottom: 40 }}
+                >
+                  <XAxis
+                    dataKey="nombre"
+                    tick={{ fontSize: 12, fill: '#757684' }}
+                    angle={-30}
+                    textAnchor="end"
+                    interval={0}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 11, fill: '#757684' }}
+                    tickFormatter={(v) =>
+                      new Intl.NumberFormat('es-CO', {
+                        notation: 'compact',
+                        maximumFractionDigits: 1
+                      }).format(v)
+                    }
+                    width={64}
+                  />
+                  <Tooltip
+                    formatter={(value) => [formatMoneda(value), 'Total']}
+                    contentStyle={{
+                      borderRadius: '12px',
+                      border: '1px solid #c5c5d4',
+                      fontSize: '13px'
+                    }}
+                  />
+                  <Bar dataKey="total" radius={[6, 6, 0, 0]}>
+                    {reporteData.items.map((item, idx) => (
+                      <Cell key={idx} fill={item.cat.color || '#24389c'} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </UiCard>
+
+            {/* Tabla */}
+            <UiCard padding="p-0" className="overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-sm">
+                  <thead>
+                    <tr className="border-b border-[#c5c5d4]/20">
+                      <th className="text-left px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-[#757684]">Categoria</th>
+                      <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-[#757684]">Transacciones</th>
+                      <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-[#757684]">Total</th>
+                      <th className="text-right px-5 py-3 text-[10px] uppercase tracking-widest font-bold text-[#757684]">% del total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reporteData.items.map((item, idx) => {
+                      const porcentaje =
+                        reporteData.totalGeneral > 0
+                          ? ((item.total / reporteData.totalGeneral) * 100).toFixed(1)
+                          : '0.0'
+                      const colorCategoria = item.cat.color || '#24389c'
+                      return (
+                        <tr
+                          key={item.catId}
+                          className={cx(
+                            'border-b border-[#c5c5d4]/10 transition-colors hover:bg-[#f8f9fa]',
+                            idx === reporteData.items.length - 1 && 'border-b-0'
+                          )}
+                        >
+                          <td className="px-5 py-3.5">
+                            <div className="flex items-center gap-2.5">
+                              <div
+                                className="w-8 h-8 rounded-lg flex items-center justify-center text-base shrink-0"
+                                style={{ backgroundColor: `${colorCategoria}20` }}
+                              >
+                                {item.cat.icono || '🏷️'}
+                              </div>
+                              <span className="font-semibold text-[#191c1d]">{item.cat.nombre}</span>
+                            </div>
+                          </td>
+                          <td className="px-5 py-3.5 text-right text-[#757684]">{item.count}</td>
+                          <td className="px-5 py-3.5 text-right font-bold text-[#191c1d]">{formatMoneda(item.total)}</td>
+                          <td className="px-5 py-3.5 text-right">
+                            <span
+                              className="text-xs font-bold px-2 py-1 rounded-full"
+                              style={{ backgroundColor: `${colorCategoria}18`, color: colorCategoria }}
+                            >
+                              {porcentaje}%
+                            </span>
+                          </td>
+                        </tr>
+                      )
+                    })}
+                  </tbody>
+                  <tfoot>
+                    <tr className="border-t border-[#c5c5d4]/30 bg-[#f8f9fa]">
+                      <td className="px-5 py-3 text-xs font-bold text-[#757684] uppercase tracking-widest">Total</td>
+                      <td className="px-5 py-3 text-right text-xs font-bold text-[#757684]">{reporteData.totalTransacciones}</td>
+                      <td className="px-5 py-3 text-right font-extrabold text-[#191c1d]">{formatMoneda(reporteData.totalGeneral)}</td>
+                      <td className="px-5 py-3 text-right text-xs font-bold text-[#757684]">100%</td>
+                    </tr>
+                  </tfoot>
+                </table>
+              </div>
+            </UiCard>
+          </div>
+        )}
+      </section>
+
       {predeterminadas.length > 0 && (
         <section>
           <h3 className="text-lg font-bold text-[#191c1d] mb-4">Categorias base del sistema</h3>
