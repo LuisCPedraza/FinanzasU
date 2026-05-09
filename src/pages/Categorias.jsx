@@ -420,6 +420,81 @@ export default function Categorias() {
     handleSubmit()
   }
 
+  const nombreArchivo = `reporte-${reporteTipo}s-${reporteDesde}_${reporteHasta}`
+
+  const exportarReporteCSV = () => {
+    const escapar = (v) => {
+      const s = v === null || v === undefined ? '' : String(v)
+      if (s.includes(',') || s.includes('"') || s.includes('\n') || s.includes('\r')) {
+        return `"${s.replace(/"/g, '""')}"`
+      }
+      return s
+    }
+
+    const filas = reporteData.items.map((item) => [
+      escapar(item.cat?.nombre || 'Sin categoria'),
+      escapar(item.cat?.tipo === 'gasto' ? 'Gasto' : 'Ingreso'),
+      escapar(item.count),
+      escapar(item.total),
+      escapar(
+        reporteData.totalGeneral > 0
+          ? ((item.total / reporteData.totalGeneral) * 100).toFixed(1) + '%'
+          : '0%'
+      )
+    ])
+
+    const contenido = [
+      'sep=,',
+      ['Categoría', 'Tipo', 'N° Transacciones', 'Total', 'Participación sobre el total'].join(','),
+      ...filas.map((f) => f.join(','))
+    ].join('\r\n')
+
+    const bom = '\uFEFF'
+    const blob = new Blob([bom + contenido], { type: 'text/csv;charset=utf-8;' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${nombreArchivo}.csv`
+    document.body.appendChild(link)
+    link.click()
+    document.body.removeChild(link)
+    URL.revokeObjectURL(url)
+  }
+
+  const exportarReporteExcel = () => {
+    const filas = reporteData.items.map((item) => ({
+      'Categoría': item.cat?.nombre || 'Sin categoría',
+      'Tipo': item.cat?.tipo === 'gasto' ? 'Gasto' : 'Ingreso',
+      'N° Transacciones': item.count,
+      'Total': Number(item.total),
+      'Participación sobre el total': reporteData.totalGeneral > 0
+        ? parseFloat(((item.total / reporteData.totalGeneral) * 100).toFixed(1))
+        : 0
+    }))
+
+    const hoja = XLSX.utils.json_to_sheet(filas)
+
+    hoja['!cols'] = [
+      { wch: 24 },
+      { wch: 10 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 14 }
+    ]
+
+    const rango = XLSX.utils.decode_range(hoja['!ref'])
+    for (let fila = rango.s.r + 1; fila <= rango.e.r; fila++) {
+      const celdaTotal = hoja[XLSX.utils.encode_cell({ r: fila, c: 3 })]
+      if (celdaTotal && celdaTotal.t === 'n') celdaTotal.z = '"$"#,##0'
+      const celdaPct = hoja[XLSX.utils.encode_cell({ r: fila, c: 4 })]
+      if (celdaPct && celdaPct.t === 'n') celdaPct.z = '0.0"%"'
+    }
+
+    const libro = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(libro, hoja, 'Reporte')
+    XLSX.writeFile(libro, `${nombreArchivo}.xlsx`)
+  }
+
   if (cargandoDatos) return <UiSpinner />
 
   return (
