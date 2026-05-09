@@ -78,7 +78,10 @@ export default function FiltrosTransacciones({
                 ].map(({ value, label }) => (
                   <button
                     key={value}
-                    onClick={() => onChange('tipo', value)}
+                    onClick={() => {
+                      onChange('tipo', value)
+                      onChange('categoriaIds', [])
+                    }}
                     className={[
                       'px-4 py-1.5 rounded-xl text-sm font-semibold border transition-all',
                       filtros.tipo === value
@@ -169,6 +172,11 @@ export default function FiltrosTransacciones({
               <div>
                 <p className="text-[10px] uppercase tracking-widest font-bold text-[#757684] mb-2">
                   Categorias
+                  {filtros.tipo && (
+                    <span className="ml-1.5 normal-case text-[#757684]/60">
+                      ({filtros.tipo === 'ingreso' ? 'ingresos' : 'gastos'})
+                    </span>
+                  )}
                   {filtros.categoriaIds.length > 0 && (
                     <span className="ml-1.5 normal-case text-[#24389c]">
                       · {filtros.categoriaIds.length} seleccionada{filtros.categoriaIds.length > 1 ? 's' : ''}
@@ -176,7 +184,7 @@ export default function FiltrosTransacciones({
                   )}
                 </p>
                 <div className="flex flex-wrap gap-2">
-                  {categorias.map((c) => {
+                  {(filtros.tipo ? categorias.filter((c) => c.tipo === filtros.tipo) : categorias).map((c) => {
                     const val = String(c.id)
                     const activo = filtros.categoriaIds.includes(val)
                     return (
