@@ -116,6 +116,51 @@ En el contexto académico, muchos estudiantes carecen de herramientas especializ
 🧪 Cobertura de Tests: 3+ suite ejecutadas
 ```
 
+### 📈 Progreso del Proyecto
+
+<div align="center">
+
+#### Avance General
+
+```
+Historias de Usuario     ████████████████████ 100% (21/21)
+Características Core     ████████████████████ 100% (10/10)
+Sistema de Notificaciones ████████████████████ 100% (3/3)
+Reportes & Exportación   ████████████████████ 100% (2/2)
+Documentación            ████████████████████ 100% (5/5)
+Testing & QA             ███████████░░░░░░░░░  60% (3/5)
+```
+
+#### Estado por Componente
+
+| Componente | Avance | Commits | Contribuidor |
+|:---|:---:|:---:|:---|
+| **Auth & Seguridad** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 6 | Juan Camilo Triana |
+| **CRUD Transacciones** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 12 | Nicolás García |
+| **Presupuestos & Alertas** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 8 | Luis Pedraza |
+| **Sistema de Logros** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 10 | Deibyd Castillo |
+| **Notificaciones RLS** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 7 | Luis Pedraza |
+| **Dashboard & Reportes** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 15 | Deibyd Castillo |
+| **Contexto Académico** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 7 | Yerlin Álvarez |
+| **Filtros & Exportación** | ![100%](https://img.shields.io/badge/100%25-✅-brightgreen) | 8 | Nicolás García |
+
+#### 📊 Cobertura de Funcionalidades
+
+```
+🔐 Seguridad & Auth        ████████████████████ 100%
+💰 Gestión Financiera      ████████████████████ 100%
+📊 Análisis & Reportes     ████████████████████ 100%
+🎯 Gamificación            ████████████████████ 100%
+🔔 Notificaciones          ████████████████████ 100%
+📱 Responsividad UI        ███████████████░░░░░  75%
+🧪 Cobertura de Tests      ███████████░░░░░░░░░  55%
+📚 Documentación            ████████████████████ 100%
+```
+
+**Resumen de Avance Global: 91% ✨**
+
+</div>
+
 ### Distribución de Commits por Mes
 
 ```
