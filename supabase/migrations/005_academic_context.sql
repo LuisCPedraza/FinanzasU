@@ -5,6 +5,16 @@ ALTER TABLE public.perfiles
   ADD COLUMN IF NOT EXISTS estado_academico text DEFAULT 'Activo';
 
 -- Validar valores permitidos
-ALTER TABLE public.perfiles
-  ADD CONSTRAINT perfiles_estado_academico_check
-  CHECK (estado_academico IN ('Activo', 'Pausado', 'Egresado'));
+DO $$
+BEGIN
+  IF NOT EXISTS (
+    SELECT 1 FROM pg_constraint
+    WHERE conname = 'perfiles_estado_academico_check'
+      AND conrelid = 'public.perfiles'::regclass
+  ) THEN
+    EXECUTE 'ALTER TABLE public.perfiles
+      ADD CONSTRAINT perfiles_estado_academico_check
+      CHECK (estado_academico IN (''Activo'', ''Pausado'', ''Egresado''))';
+  END IF;
+END
+$$;

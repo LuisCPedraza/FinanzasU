@@ -1,5 +1,5 @@
 -- TABLA: preferencias_notificacion
-CREATE TABLE public.preferencias_notificacion (
+CREATE TABLE IF NOT EXISTS public.preferencias_notificacion (
   id bigserial NOT NULL,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   alertas_diarias boolean NOT NULL DEFAULT true,
@@ -12,11 +12,14 @@ CREATE TABLE public.preferencias_notificacion (
 
 ALTER TABLE public.preferencias_notificacion ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "prefs_select" ON public.preferencias_notificacion;
 CREATE POLICY "prefs_select" ON public.preferencias_notificacion
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "prefs_insert" ON public.preferencias_notificacion;
 CREATE POLICY "prefs_insert" ON public.preferencias_notificacion
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "prefs_update" ON public.preferencias_notificacion;
 CREATE POLICY "prefs_update" ON public.preferencias_notificacion
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);

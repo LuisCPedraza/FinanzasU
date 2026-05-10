@@ -4,7 +4,7 @@
 -- ============================================================
 
 -- TABLA: catalogo_logros (catálogo global, público, solo lectura)
-CREATE TABLE public.catalogo_logros (
+CREATE TABLE IF NOT EXISTS public.catalogo_logros (
   id text NOT NULL,
   nombre text NOT NULL,
   descripcion text NOT NULL,
@@ -19,7 +19,7 @@ CREATE TABLE public.catalogo_logros (
 );
 
 -- TABLA: progreso_logros (progreso por usuario autenticado)
-CREATE TABLE public.progreso_logros (
+CREATE TABLE IF NOT EXISTS public.progreso_logros (
   id bigserial NOT NULL,
   user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   logro_id text NOT NULL REFERENCES public.catalogo_logros(id) ON DELETE CASCADE,
@@ -33,29 +33,34 @@ CREATE TABLE public.progreso_logros (
 );
 
 -- Índices
-CREATE INDEX idx_progreso_logros_user_id ON public.progreso_logros (user_id);
-CREATE INDEX idx_progreso_logros_user_desbloqueado ON public.progreso_logros (user_id, desbloqueado);
-CREATE INDEX idx_catalogo_logros_categoria ON public.catalogo_logros (categoria);
-CREATE INDEX idx_catalogo_logros_activo ON public.catalogo_logros (activo);
+CREATE INDEX IF NOT EXISTS idx_progreso_logros_user_id ON public.progreso_logros (user_id);
+CREATE INDEX IF NOT EXISTS idx_progreso_logros_user_desbloqueado ON public.progreso_logros (user_id, desbloqueado);
+CREATE INDEX IF NOT EXISTS idx_catalogo_logros_categoria ON public.catalogo_logros (categoria);
+CREATE INDEX IF NOT EXISTS idx_catalogo_logros_activo ON public.catalogo_logros (activo);
 
 -- RLS para catalogo_logros: todos pueden leer, nadie modifica desde el cliente
 ALTER TABLE public.catalogo_logros ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "catalogo_logros_select_all" ON public.catalogo_logros;
 CREATE POLICY "catalogo_logros_select_all" ON public.catalogo_logros
   FOR SELECT USING (true);
 
 -- RLS para progreso_logros: cada usuario solo accede a lo suyo
 ALTER TABLE public.progreso_logros ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "progreso_logros_select" ON public.progreso_logros;
 CREATE POLICY "progreso_logros_select" ON public.progreso_logros
   FOR SELECT USING (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "progreso_logros_insert" ON public.progreso_logros;
 CREATE POLICY "progreso_logros_insert" ON public.progreso_logros
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "progreso_logros_update" ON public.progreso_logros;
 CREATE POLICY "progreso_logros_update" ON public.progreso_logros
   FOR UPDATE USING (auth.uid() = user_id) WITH CHECK (auth.uid() = user_id);
 
+DROP POLICY IF EXISTS "progreso_logros_delete" ON public.progreso_logros;
 CREATE POLICY "progreso_logros_delete" ON public.progreso_logros
   FOR DELETE USING (auth.uid() = user_id);
 
@@ -99,4 +104,5 @@ INSERT INTO public.catalogo_logros (id, nombre, descripcion, icono, categoria, t
 
   -- 🌟 Categoría: Especial
   ('madrugador',           'Madrugador',               'Registra una transacción antes de las 7:00 AM',                  '🌅', 'especial',     'hito',       1,    24),
-  ('noctambulo',           'Noctámbulo',               'Registra una transacción después de las 11:00 PM',               '🦉', 'especial',     'hito',       1,    25);
+  ('noctambulo',           'Noctámbulo',               'Registra una transacción después de las 11:00 PM',               '🦉', 'especial',     'hito',       1,    25)
+ON CONFLICT (id) DO NOTHING;
