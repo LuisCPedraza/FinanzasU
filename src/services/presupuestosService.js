@@ -1,19 +1,22 @@
 import { supabase } from './supabaseClient'
+import { calcularEstadoPresupuesto } from '../utils/presupuestoStatus'
 
 // ✅ FIX: Helper extraído para reutilizar en getPresupuestos y updatePresupuesto
 function enriquecerPresupuesto(p, gastosPorCategoria) {
   const gastado = gastosPorCategoria[p.categoria_id] || 0
-  const porcentaje = p.monto_limite > 0 ? (gastado / Number(p.monto_limite)) * 100 : 0
-  let estado = 'verde'
-  if (porcentaje >= 100) estado = 'rojo'
-  else if (porcentaje >= 80) estado = 'amarillo'
+  const estadoCalculado = calcularEstadoPresupuesto({
+    gastado,
+    monto_limite: p.monto_limite,
+    umbral_alerta_pct: p.umbral_alerta_pct
+  })
 
   return {
     ...p,
     gastado,
-    porcentaje: Math.round(porcentaje * 10) / 10,
-    estado,
-    restante: Math.max(0, Number(p.monto_limite) - gastado),
+    porcentaje: estadoCalculado.porcentaje,
+    estado: estadoCalculado.estado,
+    restante: estadoCalculado.restante,
+    umbral_alerta_pct: estadoCalculado.umbral_alerta_pct,
   }
 }
 

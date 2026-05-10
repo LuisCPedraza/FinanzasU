@@ -19,10 +19,11 @@ import { usePresupuestos } from '../hooks/usePresupuestos'
 import { useCategorias } from '../hooks/useCategorias'
 import { formatMoneda } from '../utils/formatMoneda'
 import { MESES } from '../utils/constants'
-import { validatePresupuestoForm, hasErrors } from '../utils/validationHelpers'
+import { DEFAULT_UMBRAL_ALERTA_PCT } from '../utils/presupuestoStatus'
+import { validatePresupuestoUmbralForm, hasErrors } from '../utils/validationHelpers'
 
 const HOY = new Date()
-const INITIAL_FORM = { categoria_id: '', monto_limite: '' }
+const INITIAL_FORM = { categoria_id: '', monto_limite: '', umbral_alerta_pct: String(DEFAULT_UMBRAL_ALERTA_PCT) }
 
 const cx = (...classes) => classes.filter(Boolean).join(' ')
 
@@ -273,7 +274,8 @@ export default function Presupuestos() {
     setEditando(presupuesto)
     setForm({
       categoria_id: String(presupuesto.categoria_id),
-      monto_limite: String(presupuesto.monto_limite)
+      monto_limite: String(presupuesto.monto_limite),
+      umbral_alerta_pct: String(presupuesto.umbral_alerta_pct ?? DEFAULT_UMBRAL_ALERTA_PCT)
     })
     setErrors({})
     setModalOpen(true)
@@ -288,13 +290,13 @@ export default function Presupuestos() {
   const handleChange = (field, value) => {
     const next = { ...form, [field]: value }
     setForm(next)
-    setErrors(validatePresupuestoForm(next))
+    setErrors(validatePresupuestoUmbralForm(next))
   }
 
   const handleSubmit = async (e) => {
     e?.preventDefault?.()
 
-    const nextErrors = validatePresupuestoForm(form)
+    const nextErrors = validatePresupuestoUmbralForm(form)
     setErrors(nextErrors)
     if (hasErrors(nextErrors)) return
 
@@ -302,7 +304,8 @@ export default function Presupuestos() {
     try {
       const payload = {
         categoria_id: Number(form.categoria_id),
-        monto_limite: Number(form.monto_limite)
+        monto_limite: Number(form.monto_limite),
+        umbral_alerta_pct: Number(form.umbral_alerta_pct)
       }
 
       if (editando) {
@@ -502,6 +505,15 @@ export default function Presupuestos() {
                       <span className="text-[#757684] text-sm">/ {formatMoneda(p.monto_limite)} mes</span>
                     </div>
 
+                    <div className="flex items-center justify-between gap-3 mb-4 text-xs">
+                      <span className="inline-flex items-center gap-2 px-2.5 py-1 rounded-full bg-[#f3f4f5] text-[#454652] font-semibold">
+                        Alerta al {Number(p.umbral_alerta_pct ?? DEFAULT_UMBRAL_ALERTA_PCT)}%
+                      </span>
+                      <span className={cx('font-semibold', textEstado)}>
+                        {p.estado === 'rojo' ? 'Excedido' : p.estado === 'amarillo' ? 'Advertencia' : 'En rango'}
+                      </span>
+                    </div>
+
                     <div className="relative pt-1">
                       <div className={cx('overflow-hidden h-3 mb-4 text-xs flex rounded-full', barTrack)}>
                         <div className={cx('flex rounded-full transition-all duration-500', barFill)} style={{ width: `${Math.min(p.porcentaje || 0, 100)}%` }} />
@@ -597,8 +609,21 @@ export default function Presupuestos() {
           />
           {errors.monto_limite ? <p className="text-xs text-[#ba1a1a] -mt-3 ml-1">{errors.monto_limite}</p> : null}
 
+          <UiInput
+            id="pres-umbral"
+            label="Umbral de alerta (%)"
+            type="number"
+            min={1}
+            max={100}
+            step={1}
+            placeholder="Ej. 80"
+            value={form.umbral_alerta_pct}
+            onChange={(e) => handleChange('umbral_alerta_pct', e.target.value)}
+          />
+          {errors.umbral_alerta_pct ? <p className="text-xs text-[#ba1a1a] -mt-3 ml-1">{errors.umbral_alerta_pct}</p> : null}
+
           <p className="text-xs text-[#757684] bg-[#f3f4f5] rounded-xl p-3">
-            Este presupuesto aplica para <strong>{MESES[mes - 1]} {anio}</strong>
+            Este presupuesto aplica para <strong>{MESES[mes - 1]} {anio}</strong>. La advertencia se activa al alcanzar el umbral configurado y el estado rojo aparece al superar el límite.
           </p>
         </form>
       </UiModal>
