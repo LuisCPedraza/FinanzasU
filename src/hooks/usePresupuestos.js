@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react'
 import { useAppDataContext } from '../context/AppDataContext'
+import { calcularEstadoPresupuesto } from '../utils/presupuestoStatus'
 
 function getPeriodo(fecha) {
   const [anioTxt, mesTxt] = String(fecha || '').split('-')
@@ -19,19 +20,19 @@ function enriquecerPresupuesto(presupuesto, transacciones = []) {
     })
     .reduce((acc, t) => acc + Number(t.monto || 0), 0)
 
-  const limite = Number(presupuesto.monto_limite || 0)
-  const porcentaje = limite > 0 ? (gastado / limite) * 100 : 0
-  let estado = 'verde'
-
-  if (porcentaje >= 100) estado = 'rojo'
-  else if (porcentaje >= 80) estado = 'amarillo'
+  const estadoCalculado = calcularEstadoPresupuesto({
+    gastado,
+    monto_limite: presupuesto.monto_limite,
+    umbral_alerta_pct: presupuesto.umbral_alerta_pct
+  })
 
   return {
     ...presupuesto,
     gastado,
-    porcentaje: Math.round(porcentaje * 10) / 10,
-    estado,
-    restante: Math.max(0, limite - gastado)
+    porcentaje: estadoCalculado.porcentaje,
+    estado: estadoCalculado.estado,
+    restante: estadoCalculado.restante,
+    umbral_alerta_pct: estadoCalculado.umbral_alerta_pct
   }
 }
 

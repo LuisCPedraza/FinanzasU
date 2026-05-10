@@ -71,6 +71,26 @@ export function validatePresupuestoForm({ categoria_id, monto_limite }) {
   return errors
 }
 
+export function validateUmbralAlertaPct(value) {
+  if (value === null || value === undefined || value === '') {
+    return 'El umbral de alerta es obligatorio'
+  }
+
+  const num = Number(value)
+  if (Number.isNaN(num)) return 'El umbral debe ser un valor numerico'
+  if (num < 1 || num > 100) return 'El umbral debe estar entre 1 y 100'
+
+  return null
+}
+
+export function validatePresupuestoUmbralForm({ categoria_id, monto_limite, umbral_alerta_pct }) {
+  const errors = validatePresupuestoForm({ categoria_id, monto_limite })
+  const umbralErr = validateUmbralAlertaPct(umbral_alerta_pct)
+  if (umbralErr) errors.umbral_alerta_pct = umbralErr
+
+  return errors
+}
+
 export function hasErrors(errorsObj) {
   if (!errorsObj) return false
   return Object.values(errorsObj).some((v) => v)
