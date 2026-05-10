@@ -2,8 +2,14 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { useAuthContext } from './AuthContext'
 import { listarCategorias, crearCategoria as crearCategoriaService, actualizarCategoria as actualizarCategoriaService, eliminarCategoria as eliminarCategoriaService } from '../services/categoriasService'
 import { listarTransacciones, crearTransaccion as crearTransaccionService, actualizarTransaccion as actualizarTransaccionService, eliminarTransaccion as eliminarTransaccionService } from '../services/transaccionesService'
-import { listarPresupuestos } from '../services/presupuestosService'
+import {
+  listarPresupuestos,
+  createPresupuesto as crearPresupuestoService,
+  updatePresupuesto as actualizarPresupuestoService,
+  deletePresupuesto as eliminarPresupuestoService
+} from '../services/presupuestosService'
 import { useNotificationsContext } from './NotificationsContext'
+import { useLogrosContext } from './LogrosContext'
 
 const AppDataContext = createContext(null)
 
@@ -29,7 +35,8 @@ function totalGastosCategoriaPeriodo(transacciones, categoriaId, mes, anio) {
 
 export function AppDataProvider({ children }) {
   const { usuario } = useAuthContext()
-  const { registrarNotificacion } = useNotificationsContext()
+  const { registrarNotificacion, preferencias } = useNotificationsContext()
+  const { evaluarYActualizarLogros } = useLogrosContext()
 
   const [categorias, setCategorias] = useState([])
   const [transacciones, setTransacciones] = useState([])
@@ -116,32 +123,38 @@ export function AppDataProvider({ children }) {
           && Number(p.mes) === Number(mes)
           && Number(p.anio) === Number(anio)
         )
-
-        if (presupuesto) {
-          const totalGasto = totalGastosCategoriaPeriodo(nextTransacciones, categoriaId, mes, anio)
-          const limite = Number(presupuesto.monto_limite || 0)
-
+        
+      if (presupuesto && preferencias?.alertas_diarias !== false) {
+        const totalGasto = totalGastosCategoriaPeriodo(nextTransacciones, categoriaId, mes, anio)
+        const limite = Number(presupuesto.monto_limite || 0)
           if (totalGasto > limite) {
-            await registrarNotificacion({
-              tipo: 'presupuesto',
-              titulo: 'Presupuesto excedido',
-              mensaje: `Tu categoria ${categoriaNombre} supero el limite del periodo ${mes}/${anio}.`,
-              moduloOrigen: 'presupuestos',
-              rutaDestino: '/presupuestos',
-              recursoTipo: 'presupuesto',
-              recursoId: String(presupuesto.id),
-              eventKey: `presupuesto-excedido-${presupuesto.id}-${anio}-${mes}`,
-              dedupeMinutes: null
-            })
-          }
+          await registrarNotificacion({
+            tipo: 'presupuesto',
+            titulo: 'Presupuesto excedido',
+            mensaje: `Tu categoria ${categoriaNombre} supero el limite del periodo ${mes}/${anio}.`,
+            moduloOrigen: 'presupuestos',
+            rutaDestino: '/presupuestos',
+            recursoTipo: 'presupuesto',
+            recursoId: String(presupuesto.id),
+            eventKey: `presupuesto-excedido-${presupuesto.id}-${anio}-${mes}`,
+            dedupeMinutes: null
+          })
         }
+      }
       }
     } catch (notificationError) {
       console.warn('No se pudo registrar notificacion de transaccion:', notificationError)
     }
 
+    // Evaluar logros después de crear transacción
+    try {
+      await evaluarYActualizarLogros({ transacciones: nextTransacciones, presupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
     return nuevaTransaccion
-  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion])
+  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion, evaluarYActualizarLogros, preferencias])
 
   const actualizarTransaccion = useCallback(async (id, data) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
@@ -164,7 +177,7 @@ export function AppDataProvider({ children }) {
           && Number(p.anio) === Number(periodo.anio)
         )
 
-        if (presupuesto) {
+        if (presupuesto && preferencias?.alertas_diarias !== false) {
           const totalDespues = totalGastosCategoriaPeriodo(
             nextTransacciones,
             actualizada.categoria_id,
@@ -201,38 +214,150 @@ export function AppDataProvider({ children }) {
       console.warn('No se pudo registrar notificacion de presupuesto:', notificationError)
     }
 
+    // Evaluar logros después de actualizar transacción
+    try {
+      await evaluarYActualizarLogros({ transacciones: nextTransacciones, presupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
     return actualizada
-  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion])
+  }, [usuario?.id, categorias, presupuestos, transacciones, registrarNotificacion, evaluarYActualizarLogros])
 
   const eliminarTransaccion = useCallback(async (id) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
     setErrorGlobal('')
     await eliminarTransaccionService(id, usuario.id)
-    setTransacciones((prev) => prev.filter((t) => t.id !== id))
-  }, [usuario?.id])
+    const nextTransacciones = transacciones.filter((t) => t.id !== id)
+    setTransacciones(nextTransacciones)
+
+    // Evaluar logros después de eliminar transacción
+    try {
+      await evaluarYActualizarLogros({ transacciones: nextTransacciones, presupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+  }, [usuario?.id, transacciones, presupuestos, categorias, evaluarYActualizarLogros])
 
   const crearCategoria = useCallback(async (data) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
     setErrorGlobal('')
     const nueva = await crearCategoriaService({ ...data, user_id: usuario.id, es_predeterminada: false })
-    setCategorias((prev) => [...prev, nueva])
+    const nextCategorias = [...categorias, nueva]
+    setCategorias(nextCategorias)
+
+    // Evaluar logros después de crear categoría (para master-categorias)
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos, categorias: nextCategorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
     return nueva
-  }, [usuario?.id])
+  }, [usuario?.id, transacciones, presupuestos, categorias, evaluarYActualizarLogros])
 
   const actualizarCategoria = useCallback(async (id, data) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
     setErrorGlobal('')
     const actualizada = await actualizarCategoriaService(id, usuario.id, data)
-    setCategorias((prev) => prev.map((c) => (c.id === id ? actualizada : c)))
+    const nextCategorias = categorias.map((c) => (c.id === id ? actualizada : c))
+    setCategorias(nextCategorias)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos, categorias: nextCategorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
     return actualizada
-  }, [usuario?.id])
+  }, [usuario?.id, categorias, transacciones, presupuestos, evaluarYActualizarLogros])
 
   const eliminarCategoria = useCallback(async (id) => {
     if (!usuario?.id) throw new Error('Sesion invalida.')
     setErrorGlobal('')
     await eliminarCategoriaService(id, usuario.id)
-    setCategorias((prev) => prev.filter((c) => c.id !== id))
-  }, [usuario?.id])
+    const nextCategorias = categorias.filter((c) => c.id !== id)
+    setCategorias(nextCategorias)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos, categorias: nextCategorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+  }, [usuario?.id, categorias, transacciones, presupuestos, evaluarYActualizarLogros])
+
+  const crearPresupuesto = useCallback(async ({ categoria_id, monto_limite, mes, anio }) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+
+    const nuevoPresupuesto = await crearPresupuestoService({
+      user_id: usuario.id,
+      categoria_id,
+      monto_limite,
+      mes,
+      anio
+    })
+
+    const nextPresupuestos = [nuevoPresupuesto, ...presupuestos]
+    setPresupuestos(nextPresupuestos)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos: nextPresupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
+    return nuevoPresupuesto
+  }, [usuario?.id, presupuestos, transacciones, categorias, evaluarYActualizarLogros])
+
+  const actualizarPresupuesto = useCallback(async (id, data, periodo = {}) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+
+    const presupuestoActual = presupuestos.find((p) => p.id === id)
+    const mesObjetivo = Number(periodo.mes ?? presupuestoActual?.mes)
+    const anioObjetivo = Number(periodo.anio ?? presupuestoActual?.anio)
+
+    if (!Number.isFinite(mesObjetivo) || !Number.isFinite(anioObjetivo)) {
+      throw new Error('No se pudo determinar el periodo del presupuesto.')
+    }
+
+    const presupuestoActualizado = await actualizarPresupuestoService(
+      id,
+      usuario.id,
+      data,
+      mesObjetivo,
+      anioObjetivo
+    )
+
+    const nextPresupuestos = presupuestos.map((p) => (
+      p.id === id ? { ...p, ...presupuestoActualizado } : p
+    ))
+    setPresupuestos(nextPresupuestos)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos: nextPresupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+
+    return presupuestoActualizado
+  }, [usuario?.id, presupuestos, transacciones, categorias, evaluarYActualizarLogros])
+
+  const eliminarPresupuesto = useCallback(async (id) => {
+    if (!usuario?.id) throw new Error('Sesion invalida.')
+    setErrorGlobal('')
+
+    await eliminarPresupuestoService(id, usuario.id)
+    const nextPresupuestos = presupuestos.filter((p) => p.id !== id)
+    setPresupuestos(nextPresupuestos)
+
+    try {
+      await evaluarYActualizarLogros({ transacciones, presupuestos: nextPresupuestos, categorias })
+    } catch (logrosError) {
+      console.warn('No se pudieron evaluar logros:', logrosError)
+    }
+  }, [usuario?.id, presupuestos, transacciones, categorias, evaluarYActualizarLogros])
 
   const totales = useMemo(() => {
     const totalIngresos = transacciones
@@ -265,6 +390,9 @@ export function AppDataProvider({ children }) {
     crearCategoria,
     actualizarCategoria,
     eliminarCategoria,
+    crearPresupuesto,
+    actualizarPresupuesto,
+    eliminarPresupuesto,
     limpiarEstado
   }), [
     categorias,
@@ -280,6 +408,9 @@ export function AppDataProvider({ children }) {
     crearCategoria,
     actualizarCategoria,
     eliminarCategoria,
+    crearPresupuesto,
+    actualizarPresupuesto,
+    eliminarPresupuesto,
     limpiarEstado
   ])
 

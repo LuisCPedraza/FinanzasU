@@ -6,11 +6,15 @@ import {
   Trash2,
   ReceiptText,
   ArrowUpCircle,
-  ArrowDownCircle
+  ArrowDownCircle,
+  SearchX
 } from 'lucide-react'
-import { useTransacciones } from '../hooks/useTransacciones'
+import { useTransaccionesFiltros } from '../hooks/useTransaccionesFiltros'
 import { useCategorias } from '../hooks/useCategorias'
 import Modal from '../components/ui/Modal'
+import FiltrosTransacciones from '../components/ui/FiltrosTransacciones'
+import Paginacion from '../components/ui/Paginacion'
+import BotonExportarCSV from '../components/ui/BotonExportarCSV'
 import { formatMoneda } from '../utils/formatMoneda'
 import { validateTransaccionForm, hasErrors } from '../utils/validationHelpers'
 
@@ -24,12 +28,27 @@ const INITIAL_FORM = {
 
 export default function Transacciones() {
   const {
-    transacciones,
     cargandoDatos,
     crearTransaccion,
     actualizarTransaccion,
-    eliminarTransaccion
-  } = useTransacciones()
+    eliminarTransaccion,
+    filtros,
+    actualizarFiltro,
+    limpiarFiltros,
+    hayFiltrosActivos,
+    conteoFiltros,
+    aniosDisponibles,
+    mesesDisponibles,
+    transacciones,
+    transaccionesFiltradas,
+    transaccionesPaginadas,
+    pagina,
+    porPagina,
+    totalPaginas,
+    totalFiltradas,
+    cambiarPagina,
+    cambiarPorPagina
+  } = useTransaccionesFiltros()
   const { categorias } = useCategorias()
 
   const [modalOpen, setModalOpen] = useState(false)
@@ -136,13 +155,32 @@ export default function Transacciones() {
           </h1>
           <p className="text-sm text-[#454652] mt-1">Gestiona tus ingresos y gastos</p>
         </div>
-        <button
-          onClick={openCreate}
-          className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#24389c] to-[#3f51b5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#24389c]/20 hover:opacity-90 transition-all"
-        >
-          <Plus className="w-4 h-4" /> Agregar transaccion
-        </button>
+        <div className="flex items-center gap-2">
+          <BotonExportarCSV
+            transaccionesPaginadas={transaccionesPaginadas}
+            transaccionesFiltradas={transaccionesFiltradas}
+            categorias={categorias}
+            filtros={filtros}
+          />
+          <button
+            onClick={openCreate}
+            className="inline-flex items-center gap-2 rounded-xl bg-gradient-to-br from-[#24389c] to-[#3f51b5] px-5 py-2.5 text-sm font-semibold text-white shadow-lg shadow-[#24389c]/20 hover:opacity-90 transition-all"
+          >
+            <Plus className="w-4 h-4" /> Agregar transaccion
+          </button>
+        </div>
       </div>
+
+      <FiltrosTransacciones
+        filtros={filtros}
+        onChange={actualizarFiltro}
+        onLimpiar={limpiarFiltros}
+        hayFiltros={hayFiltrosActivos}
+        conteoFiltros={conteoFiltros}
+        categorias={categorias}
+        anios={aniosDisponibles}
+        meses={mesesDisponibles}
+      />
 
       {cargandoDatos ? (
         <div className="flex items-center justify-center py-20">
@@ -154,9 +192,21 @@ export default function Transacciones() {
           <p className="font-semibold">No hay transacciones aun</p>
           <p className="text-sm">Agrega tu primera transaccion para comenzar</p>
         </div>
+      ) : transaccionesFiltradas.length === 0 ? (
+        <div className="text-center py-20 text-[#757684]">
+          <SearchX className="w-12 h-12 mx-auto mb-3 opacity-40" />
+          <p className="font-semibold">Sin resultados</p>
+          <p className="text-sm mb-4">No hay transacciones que coincidan con los filtros aplicados</p>
+          <button
+            onClick={limpiarFiltros}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold text-[#24389c] bg-[#dee0ff] hover:bg-[#c5c7f4] transition-colors"
+          >
+            Limpiar filtros
+          </button>
+        </div>
       ) : (
         <div className="grid gap-3">
-          {transacciones.map((t) => (
+          {transaccionesPaginadas.map((t) => (
             <div
               key={t.id}
               className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 bg-white rounded-2xl border border-[#c5c5d4]/30 p-4 shadow-sm hover:shadow-md transition-shadow"
@@ -208,6 +258,15 @@ export default function Transacciones() {
               </div>
             </div>
           ))}
+
+          <Paginacion
+            pagina={pagina}
+            totalPaginas={totalPaginas}
+            porPagina={porPagina}
+            total={totalFiltradas}
+            onCambiarPagina={cambiarPagina}
+            onCambiarPorPagina={cambiarPorPagina}
+          />
         </div>
       )}
 

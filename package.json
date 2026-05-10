@@ -7,7 +7,9 @@
     "dev": "vite",
     "build": "vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "seed": "node scripts/seed-transacciones.js",
+    "seed:clean": "node scripts/seed-transacciones.js"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.103.0",
@@ -16,7 +18,8 @@
     "react-dom": "^19.2.4",
     "react-hot-toast": "^2.6.0",
     "react-router-dom": "^7.14.0",
-    "recharts": "^3.8.1"
+    "recharts": "^3.8.1",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@eslint/js": "^9.39.4",
