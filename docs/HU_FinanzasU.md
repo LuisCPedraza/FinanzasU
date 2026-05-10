@@ -431,6 +431,19 @@
 - Criterios de prueba para disparar alerta de advertencia, alerta de exceso y ausencia de alertas.
 - Flujo claro de actualización de estado presupuestal tras nuevas transacciones.
 
+### Revisión de implementación (HU-21)
+
+- **Estado:** Implementado en frontend y backend parcial.
+- **Qué está presente:**
+	- Detección y notificación cuando un gasto excede el `monto_limite` del presupuesto (notificación tipo `presupuesto`).
+	- Visualización de porcentaje de uso y barras codificadas por color en el `Dashboard` y en la vista de `Presupuestos`/categorías, mostrando estados de advertencia/exceso visuales.
+	- Mensajes de notificación incluyen la categoría y el periodo afectados y enlazan a `/presupuestos`.
+	- Preferencia `alertas_diarias` respeta si el usuario desea recibir notificaciones.
+- **Qué falta / mejora recomendada:**
+	- No existe actualmente un umbral configurable por presupuesto para la alerta de advertencia (p.ej. notificar al alcanzar 80%). Recomendado: añadir campo `umbral_alerta_pct` en la tabla de presupuestos y lógica para generar notificaciones cuando el porcentaje alcance el umbral antes de exceder el límite.
+
+Esta nota se añade como registro de revisión para HU-21; el cumplimiento parcial/total se refleja también en `docs/HU_FinanzasU.md` donde aparecen los criterios marcados.
+
 ---
 
 ## HU-22 — Configurar meta de ahorro mensual en el dashboard y presupuestos
