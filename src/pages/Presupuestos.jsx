@@ -212,6 +212,7 @@ export default function Presupuestos() {
   const [errors, setErrors] = useState({})
   const [saving, setSaving] = useState(false)
   const formRef = useRef(null)
+  const presupuestosRef = useRef(null)
 
   const categoriasGasto = useMemo(
     () => categorias.filter((c) => c.tipo === 'gasto'),
@@ -341,6 +342,10 @@ export default function Presupuestos() {
     handleSubmit()
   }
 
+  const scrollToPresupuestos = () => {
+    presupuestosRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
+
   const disableSubmit = hasErrors(errors) || saving
 
   if (loading) {
@@ -403,7 +408,7 @@ export default function Presupuestos() {
       <section>
         <div className="flex items-center justify-between mb-6 gap-3">
           <h3 className="font-headline text-2xl font-bold">Alertas activas</h3>
-          <button type="button" className="text-[#24389c] font-bold text-sm hover:underline flex items-center gap-1">
+          <button type="button" onClick={scrollToPresupuestos} className="text-[#24389c] font-bold text-sm hover:underline flex items-center gap-1">
             Configurar alertas <ArrowRight className="w-4 h-4" />
           </button>
         </div>
@@ -438,7 +443,7 @@ export default function Presupuestos() {
         </div>
       </section>
 
-      <section>
+      <section ref={presupuestosRef}>
         <div className="flex flex-col lg:flex-row lg:items-end justify-between gap-5 mb-8">
           <div>
             <h3 className="font-headline text-2xl font-bold">Presupuestos por categoria</h3>
